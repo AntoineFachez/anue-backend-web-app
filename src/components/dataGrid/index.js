@@ -53,7 +53,6 @@ export default function CustomDataGrid({
         columns={columns}
         getRowId={(row) => String(row.id)}
         pageSizeOptions={[5, 10, 25]}
-        keepNonExistentRowsSelected
         initialState={{
           pagination: { paginationModel: { pageSize: 10 } },
         }}

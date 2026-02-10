@@ -27,16 +27,10 @@ export default function RootLayout({ children }) {
         style={{
           width: "100vw",
           height: "100vh",
-<<<<<<< HEAD
           // overflow: "scroll",
         }}
       >
         <Providers appBarHeight={appBarHeight}>{children}</Providers>
-=======
-        }}
-      >
-        <Providers meData={meData}>{children}</Providers>
->>>>>>> 5a21368 (chore: Install dependencies for the `functions` directory.)
       </body>
     </html>
   );

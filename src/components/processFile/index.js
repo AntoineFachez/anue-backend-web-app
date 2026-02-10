@@ -94,37 +94,45 @@ export default function Index() {
   };
 
   const handleRowSelectionModelChange = (foo, bar) => {
-    console.log("handleRowSelectionModelChange - arg1:", foo);
-    console.log("handleRowSelectionModelChange - arg2:", bar);
-
     let selection = [];
 
     // Check if it's the standard array
     if (Array.isArray(foo)) {
       selection = foo;
     }
-    // Check if it's the object structure { ids: Set } we saw in logs
+    // Check if it's the object structure { ids: Set }
     else if (foo && foo.ids && foo.ids instanceof Set) {
-      selection = Array.from(foo.ids);
+      if (foo.type === "exclude") {
+        // "Exclude" mode: Select all rows MINUS the excluded ones
+        // If ids is empty, it means Select ALL.
+        const excludedSet = foo.ids;
+        selection = rows
+          .map((r) => String(r.id))
+          .filter((id) => !excludedSet.has(id) && !excludedSet.has(Number(id)));
+      } else {
+        // "Include" mode (default): Only these IDs are selected
+        selection = Array.from(foo.ids);
+      }
     }
-    // Check if maybe the second argument is the array? (unlikely)
+    // Fallback/Safety check
     else if (Array.isArray(bar)) {
       selection = bar;
     }
 
+    // Convert to Set for faster lookup and ensuring uniqueness
+    const selectionSet = new Set(selection.map(String));
+
+    // Update local state for controlled component
     setRowSelectionModel(selection);
 
-    // Ensure both selection IDs and row IDs are compared as strings
-    const selected = rows.filter((row) =>
-      selection.some((id) => String(id) === String(row.id)),
-    );
+    // Filter rows that are in the selection
+    const selected = rows.filter((row) => selectionSet.has(String(row.id)));
 
-    console.log("selected (after filter):", selected);
     setSelectedRows(selected);
   };
 
   const handleScrapeHTMLContent = () => {
-    console.log("Selected rows:", selectedRows);
+    // console.log("Selected rows:", selectedRows);
   };
 
   if (!isLoaded) {
@@ -159,7 +167,6 @@ export default function Index() {
         onColumnVisibilityModelChange={handleColumnVisibilityChange}
         onColumnResize={handleColumnResize}
         onCellClick={handleCellClick}
-        rowSelectionModel={rowSelectionModel}
         onRowSelectionModelChange={handleRowSelectionModelChange}
       />
     </Box>
