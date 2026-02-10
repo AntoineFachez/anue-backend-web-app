@@ -1,4 +1,7 @@
+// file path: ~/DEVFOLD/ANUE-BACKEND/SRC/APP/LAYOUT.JS
+
 import { Geist, Geist_Mono } from "next/font/google";
+import { Providers } from "./body/providers";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -19,8 +22,14 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        {children}
+      <body
+        className={`${geistSans.variable} ${geistMono.variable}`}
+        style={{
+          width: "100vw",
+          height: "100vh",
+        }}
+      >
+        <Providers meData={meData}>{children}</Providers>
       </body>
     </html>
   );
