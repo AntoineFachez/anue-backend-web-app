@@ -1,17 +1,21 @@
 # Anue Backend Web App
 
-A Next.js 16 application for processing Excel/CSV files with advanced DataGrid capabilities.
+A powerful Next.js 16 application designed for intelligent data processing, combining bulk file uploads, web scraping, and AI-driven data extraction using Google's Gemini.
 
-## Features
+## Overview
 
-- **Framework**: Next.js 16 (App Router)
-- **UI Component Library**: Material UI (MUI) v7
-- **DataGrid**: @mui/x-data-grid v8
-- **File Processing**: `/processFile` route allows uploading `.xlsx` files and displaying them in a DataGrid.
-- **Selection**:
-  - Supports individual row selection.
-  - **"Select All"**: Includes a custom implementation to handle "Select All" correctly for large datasets or paginated views, utilizing an "exclude" logic pattern.
-- **Backend**: Firebase Functions (in `/functions` directory).
+The primary goal of this application is to streamline the workflow of extracting structured data from web sources. It provides a robust interface for uploading datasets (Excel/CSV), visualizing them in an advanced DataGrid, and processing rows through an automated pipeline that scrapes HTML content and leverages LLMs for precise data extraction.
+
+## Key Features
+
+- **Modern Architecture**: Built with Next.js 16 (App Router) for performance and scalability.
+- **Advanced Data Management**: Utilize `@mui/x-data-grid` v8 for a spreadsheet-like experience with sorting, filtering, and pagination.
+- **Bulk Processing Pipeline**:
+  - **Ingest**: Upload and parse `.xlsx` files via the `/processFile` route.
+  - **Scrape & Extract**: Automated mechanisms to scrape HTML content from URLs and extract structured data using **Gemini**.
+  - **Visualize**: View and refine extracted data directly within the DataGrid.
+- **Robust Selection**: Custom "Select All" implementation for handling large datasets with inclusion/exclusion logic.
+- **Cloud Integration**: Powered by Firebase Functions for scalable backend processing and storage.
 
 ## Setup
 
@@ -32,9 +36,9 @@ A Next.js 16 application for processing Excel/CSV files with advanced DataGrid c
 ## Project Structure
 
 - `src/app`: Next.js App Router pages and layouts.
-- `src/components/dataGrid`: Reusable `CustomDataGrid` component.
-- `src/components/processFile`: File upload and processing logic.
-- `functions`: Firebase Cloud Functions.
+- `src/components/dataGrid`: Reusable `CustomDataGrid` component with advanced features.
+- `src/components/processFile`: File upload, parsing, and processing interface.
+- `functions`: Firebase Cloud Functions for backend logic (scraping, AI extraction).
 
 ## Future Improvements
 

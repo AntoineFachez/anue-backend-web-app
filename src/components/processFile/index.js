@@ -1,7 +1,15 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Box, Typography, Button } from "@mui/material";
+import {
+  Box,
+  Typography,
+  Button,
+  TextField,
+  InputAdornment,
+  IconButton,
+} from "@mui/material";
+import ClearIcon from "@mui/icons-material/Clear";
 import FileUpload from "./FileUpload";
 import CustomDataGrid from "../dataGrid";
 
@@ -14,6 +22,7 @@ export default function Index() {
   const [isLoaded, setIsLoaded] = useState(false);
   const [rowSelectionModel, setRowSelectionModel] = useState([]);
   const [selectedRows, setSelectedRows] = useState([]);
+  const [searchText, setSearchText] = useState("");
   const timeoutRef = useRef(null);
 
   useEffect(() => {
@@ -135,8 +144,16 @@ export default function Index() {
     // console.log("Selected rows:", selectedRows);
   };
 
+  const handleSearchChange = (event) => {
+    setSearchText(event.target.value);
+  };
+
+  const handleClearSearch = () => {
+    setSearchText("");
+  };
+
   if (!isLoaded) {
-    return null; // Or a loading spinner
+    return null; // Or a loading spinner //
   }
 
   return (
@@ -157,9 +174,28 @@ export default function Index() {
           {rows.length > 0 ? `${rows.length} rows` : "No data"}
         </Typography>
       </Box>
-      <Button onClick={handleScrapeHTMLContent} variant="contained">
-        Scrape HTML Content ({selectedRows.length})
-      </Button>
+      <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
+        <Button onClick={handleScrapeHTMLContent} variant="contained">
+          Scrape HTML Content ({selectedRows.length})
+        </Button>
+        <TextField
+          variant="outlined"
+          placeholder="Global Search..."
+          value={searchText}
+          onChange={handleSearchChange}
+          size="small"
+          InputProps={{
+            endAdornment: searchText ? (
+              <InputAdornment position="end">
+                <IconButton onClick={handleClearSearch} edge="end">
+                  <ClearIcon />
+                </IconButton>
+              </InputAdornment>
+            ) : null,
+          }}
+          sx={{ backgroundColor: "background.paper", borderRadius: 1 }}
+        />
+      </Box>
       <CustomDataGrid
         rows={rows}
         columns={columns}
@@ -168,6 +204,12 @@ export default function Index() {
         onColumnResize={handleColumnResize}
         onCellClick={handleCellClick}
         onRowSelectionModelChange={handleRowSelectionModelChange}
+        filterModel={{
+          items: [],
+          quickFilterValues: searchText
+            ? searchText.split(" ").filter((word) => word !== "")
+            : [],
+        }}
       />
     </Box>
   );
