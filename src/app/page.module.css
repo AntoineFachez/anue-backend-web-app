@@ -9,8 +9,10 @@
   --button-secondary-hover: #f2f2f2;
   --button-secondary-border: #ebebeb;
 
+  width: 100vw;
+  height: 100vh;
   display: flex;
-  min-height: 100vh;
+  flex-flow: column nowrap;
   align-items: center;
   justify-content: center;
   font-family: var(--font-geist-sans);
@@ -19,52 +21,21 @@
 
 .main {
   display: flex;
-  min-height: 100vh;
   width: 100%;
-  max-width: 800px;
+  /* height: 100%; */
+  /* max-width: 800px; */
   flex-direction: column;
   align-items: flex-start;
   justify-content: space-between;
   background-color: var(--foreground);
-  padding: 120px 60px;
-}
-
-.intro {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  text-align: left;
-  gap: 24px;
-}
-
-.intro h1 {
-  max-width: 320px;
-  font-size: 40px;
-  font-weight: 600;
-  line-height: 48px;
-  letter-spacing: -2.4px;
-  text-wrap: balance;
-  color: var(--text-primary);
-}
-
-.intro p {
-  max-width: 440px;
-  font-size: 18px;
-  line-height: 32px;
-  text-wrap: balance;
-  color: var(--text-secondary);
-}
-
-.intro a {
-  font-weight: 500;
-  color: var(--text-primary);
+  /* padding: 120px 60px; */
 }
 
 .ctas {
   display: flex;
   flex-direction: row;
   width: 100%;
-  max-width: 440px;
+  /* max-width: 440px; */
   gap: 16px;
   font-size: 14px;
 }

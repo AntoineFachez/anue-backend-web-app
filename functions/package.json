@@ -12,7 +12,6 @@
   "dependencies": {
     "@google-cloud/logging": "^11.2.1",
     "@google-cloud/trace-agent": "^8.0.0",
-    "@mui/material": "^7.3.7",
     "cors": "^2.8.6",
     "dotenv": "^17.2.4",
     "express": "^5.2.1",

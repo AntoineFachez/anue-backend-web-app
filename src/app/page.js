@@ -1,6 +1,13 @@
-import Image from "next/image";
+import { Box, Typography } from "@mui/material";
+
 import styles from "./page.module.css";
 
 export default function Home() {
-  return <div className={styles.page}></div>;
+  return (
+    <Box className={styles.page}>
+      <Typography variant="h1" sx={{ color: "white" }}>
+        Home
+      </Typography>
+    </Box>
+  );
 }
