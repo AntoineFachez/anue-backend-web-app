@@ -75,6 +75,30 @@ The application generates a predictable "Smart ID" for each course record using 
   - save extracted data to firebase
   - display extracted data in DataGrid
 
+## Configuration
+
+### Environment Variables & Secrets
+
+The application uses Firebase Cloud Functions which require specific secrets to be set in the Google Cloud environment.
+
+1.  **Enable Secret Manager API**:
+    Ensure the [Secret Manager API](https://console.cloud.google.com/marketplace/product/google/secretmanager.googleapis.com) is enabled for your project.
+
+2.  **Set Secrets**:
+    Use the Firebase CLI to set the required secrets:
+
+    ```bash
+    firebase functions:secrets:set GEMINI_API_KEY
+    # Paste your Google Gemini API Key
+    ```
+
+    ```bash
+    firebase functions:secrets:set FIREBASE_CREDS
+    # Paste your Firebase Service Account Credentials (JSON minified or path)
+    ```
+
+    _Note: `FIREBASE_CREDS` might be needed if you are using specific server-side logic requiring admin privileges, otherwise `GEMINI_API_KEY` is the primary requirement for the AI features._
+
 ## Deployment
 
 To deploy the application to Firebase, follow these steps:
