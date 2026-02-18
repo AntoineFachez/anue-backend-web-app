@@ -74,3 +74,30 @@ The application generates a predictable "Smart ID" for each course record using 
   - trigger cloud function to extract data from html content using Gemini
   - save extracted data to firebase
   - display extracted data in DataGrid
+
+## Deployment
+
+To deploy the application to Firebase, follow these steps:
+
+1.  **Install Firebase Tools**:
+
+    ```bash
+    npm install -g firebase-tools
+    ```
+
+2.  **Login to Firebase**:
+
+    ```bash
+    firebase login
+    ```
+
+3.  **Initialize/Select Project**:
+
+    ```bash
+    firebase use --add
+    ```
+
+4.  **Deploy**:
+    ```bash
+    firebase deploy
+    ```

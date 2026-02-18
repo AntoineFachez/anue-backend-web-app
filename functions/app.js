@@ -9,7 +9,7 @@ const logging = new Logging();
 const log = logging.log("gemini_api_requests");
 
 // --- Routes Imports ---
-const dataRoutes = require("./api/dataRoutes");
+// const dataRoutes = require("./api/dataRoutes");
 
 const app = express();
 
@@ -22,7 +22,7 @@ app.use(express.json());
 // --- API Routes ---
 // app.use("/ai", aiRoutes);
 // app.use("/agent", orchestratorApp);
-app.use("/data", dataRoutes);
+// app.use("/data", dataRoutes);
 // app.use("/sdui", blueprintRoutes);
 // app.use("/vision", visionRoutes);
 
