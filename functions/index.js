@@ -4,6 +4,7 @@ require("dotenv").config({ path: "../.env" });
 const admin = require("firebase-admin");
 const { setGlobalOptions } = require("firebase-functions/v2");
 const { onRequest } = require("firebase-functions/v2/https");
+const { defineSecret } = require("firebase-functions/params");
 
 try {
   admin.initializeApp();
@@ -11,6 +12,10 @@ try {
   /* This can be ignored on local emulator reloads */
 }
 setGlobalOptions({ region: "europe-west1" });
+
+// --- Define Secrets ---
+const apiKey = defineSecret("GEMINI_API_KEY");
+const firebaseCreds = defineSecret("FIREBASE_CREDS");
 
 // --- Import the Main API ---
 const app = require("./app");
@@ -32,7 +37,10 @@ const { fetchContent } = require("./triggers/callableScraper");
 // --- Export All Functions ---
 //* app.js export
 
-exports.api = onRequest({ memory: "1GiB" }, app);
+exports.api = onRequest(
+  { memory: "1GiB", secrets: [apiKey, firebaseCreds] },
+  app,
+);
 //* individual background and callable triggers
 exports.fetchContent = fetchContent;
 

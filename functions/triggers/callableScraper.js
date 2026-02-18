@@ -1,8 +1,12 @@
 // functions/scraper/scraper.js
 
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const { defineSecret } = require("firebase-functions/params");
 const { logger } = require("firebase-functions");
 const { fetchUrlContent } = require("../services/scraperService");
+
+const apiKey = defineSecret("GEMINI_API_KEY");
+const firebaseCreds = defineSecret("FIREBASE_CREDS");
 
 /**
  * Callable Cloud Function to fetch content from a given URL.
@@ -12,6 +16,7 @@ exports.fetchContent = onCall(
   {
     memory: "512MiB",
     timeoutSeconds: 30,
+    secrets: [apiKey, firebaseCreds],
   },
   async (request) => {
     // The client's payload is in `request.data`.

@@ -9,7 +9,10 @@ The primary goal of this application is to streamline the workflow of extracting
 ## Key Features
 
 - **Modern Architecture**: Built with Next.js 16 (App Router) for performance and scalability.
-- **Advanced Data Management**: Utilize `@mui/x-data-grid` v8 for a spreadsheet-like experience with sorting, filtering, and pagination.
+- **Advanced Data Management**: Utilize `@mui/x-data-grid` v8 for a spreadsheet-like experience.
+  - **Global Search**: Instantly filter across all columns using the dedicated search bar.
+  - **Enhanced Pagination**: Support for large datasets with configurable page sizes (up to 100 rows).
+  - **Sorting & Filtering**: Built-in column sorting and complex filtering capabilities.
 - **Bulk Processing Pipeline**:
   - **Ingest**: Upload and parse `.xlsx` files via the `/processFile` route.
   - **Scrape & Extract**: Automated mechanisms to scrape HTML content from URLs and extract structured data using **Gemini**.
