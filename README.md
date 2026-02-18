@@ -15,9 +15,12 @@ The primary goal of this application is to streamline the workflow of extracting
   - **Sorting & Filtering**: Built-in column sorting and complex filtering capabilities.
 - **Bulk Processing Pipeline**:
   - **Ingest**: Upload and parse `.xlsx` files via the `/processFile` route.
+  - **Smart ID Generation**: Automatically generates a unique "Smart ID" (`CITY-LEVEL-SUBJECT-INDEX`) for each record during parsing.
   - **Scrape & Extract**: Automated mechanisms to scrape HTML content from URLs and extract structured data using **Gemini**.
   - **Visualize**: View and refine extracted data directly within the DataGrid.
 - **Robust Selection**: Custom "Select All" implementation for handling large datasets with inclusion/exclusion logic.
+- **State Persistence**: Column visibility and width settings are persisted in `localStorage`.
+- **File Management**: Ability to clear loaded data and reset the file input.
 - **Cloud Integration**: Powered by Firebase Functions for scalable backend processing and storage.
 
 ## Setup
@@ -41,7 +44,25 @@ The primary goal of this application is to streamline the workflow of extracting
 - `src/app`: Next.js App Router pages and layouts.
 - `src/components/dataGrid`: Reusable `CustomDataGrid` component with advanced features.
 - `src/components/processFile`: File upload, parsing, and processing interface.
+- `src/hooks`: Custom hooks for logic reuse (e.g., `useProcessFile`).
+- `src/utils`: Utility functions (e.g., `smartIdGenerator`).
+- `src/lib`: Shared resources and data (e.g., `geodata`).
 - `functions`: Firebase Cloud Functions for backend logic (scraping, AI extraction).
+
+## Smart ID Logic
+
+The application generates a predictable "Smart ID" for each course record using the following format:
+`CITY-LEVEL-SUBJECT-INDEX`
+
+- **CITY**: Derived from the "Location" or "City" column. Mapped to UN/LOCODE or a 3-letter abbreviation (e.g., "Berlin" -> "BER").
+- **LEVEL**: Derived from the "Degree" column. 'B' for Bachelor, 'M' for Master/Other.
+- **SUBJECT**: Derived from the "Title" column.
+  - 'CS': Computer Science, Data
+  - 'BM': Business, Management, Finance, Communication
+  - 'SW': Social Work, Pädagogik
+  - 'HE': Health, Biomedical
+  - 'GN': General (default)
+- **INDEX**: The original row index from the source file.
 
 ## Future Improvements
 
