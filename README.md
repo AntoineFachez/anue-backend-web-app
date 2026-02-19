@@ -116,3 +116,14 @@ To deploy the application to Firebase, follow these steps:
     ```bash
     firebase deploy
     ```
+
+## Future Improvements
+
+- [x] write data schema for scraped data
+- write logic to:
+  - [x] loop rows
+  - [x] foreach row: scrape html content
+  - [ ] save scraped data to firebase
+  - [x] trigger cloud function to extract data from html content using Gemini
+  - [ ] save extracted data to firebase
+  - [x] display extracted data in DataGrid
