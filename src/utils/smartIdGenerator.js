@@ -6,10 +6,9 @@ import cities from "../lib/geodata/cities.json";
  * @returns {string} - The formatted Smart ID (e.g., "FRA-M-FI-22313")
  */
 export function generateSmartID(course) {
-  console.log("course", course);
   // 1. Map City to 3-letter code
   const cityEntry = cities.find((c) => c.city_DE === course.location);
-  console.log("cityEntry", cityEntry);
+
   const cityCode =
     cityEntry?.["UN/LOCODE"] ||
     (course.location ? course.location.substring(0, 3).toUpperCase() : "UNK");

@@ -32,7 +32,7 @@ const FileUpload = forwardRef(({ onDataParsed }, ref) => {
         // Assume first row is headers
         const headers = jsonData[0];
         const cols = headers.map((header, index) => ({
-          field: `col${index}`,
+          field: header || `col${index}`,
           headerName: header || `Column ${index + 1}`,
           width: 150,
           editable: true,
@@ -40,8 +40,9 @@ const FileUpload = forwardRef(({ onDataParsed }, ref) => {
 
         const rowsData = jsonData.slice(1).map((row, rowIndex) => {
           const rowData = { id: String(rowIndex) };
-          headers.forEach((_, colIndex) => {
-            rowData[`col${colIndex}`] = row[colIndex] || "";
+          headers.forEach((header, colIndex) => {
+            const field = header || `col${colIndex}`;
+            rowData[field] = row[colIndex] || "";
           });
 
           // Generate Smart ID
@@ -51,24 +52,20 @@ const FileUpload = forwardRef(({ onDataParsed }, ref) => {
             id: String(rowIndex),
             location:
               rowData[
-                `col${headers.findIndex(
+                headers.find(
                   (h) =>
                     h &&
                     (h.toLowerCase().includes("location") ||
                       h.toLowerCase().includes("city")),
-                )}`
+                )
               ] || "",
             degree:
               rowData[
-                `col${headers.findIndex(
-                  (h) => h && h.toLowerCase().includes("degree"),
-                )}`
+                headers.find((h) => h && h.toLowerCase().includes("degree"))
               ] || "",
             title:
               rowData[
-                `col${headers.findIndex(
-                  (h) => h && h.toLowerCase().includes("title"),
-                )}`
+                headers.find((h) => h && h.toLowerCase().includes("title"))
               ] || "",
           };
 

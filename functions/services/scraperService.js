@@ -20,8 +20,18 @@ async function fetchUrlContent({ logger, url }) {
   // 2. Perform the Core Task
   try {
     logger.info(`Attempting to fetch content from: ${url}`);
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+      },
+    });
 
+    // NEU: Statt Error werfen, kontrolliert null zurückgeben
+    if (response.status === 404) {
+      logger.warn(`Seite existiert nicht (404): ${url}`);
+      return null; // Signalisiert "Kein Inhalt, aber kein Systemfehler"
+    }
     if (!response.ok) {
       throw new Error(
         `Request failed with status ${response.status} - ${response.statusText}`,

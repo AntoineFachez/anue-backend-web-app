@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from "react";
+import { httpsCallable } from "firebase/functions";
+import { functions } from "../lib/firebase/firebase";
 
 const STORAGE_KEY = "datagrid-column-visibility";
 
@@ -131,8 +133,64 @@ export function useProcessFile() {
     setSelectedRows(selected);
   };
 
-  const handleScrapeHTMLContent = () => {
-    // console.log("Selected rows:", selectedRows);
+  const handleScrapeHTMLContent = async () => {
+    if (selectedRows.length === 0) {
+      alert("Please select at least one row to scrape.");
+      return;
+    }
+
+    const fetchContent = httpsCallable(functions, "fetchContent");
+
+    // Process rows sequentially or in parallel?
+    // Let's do it concurrently but maybe limit concurrency if needed. For now, all at once.
+    const promises = selectedRows.map(async (row) => {
+      // Find the URL column. Assuming 'study_url' or similar.
+      // Or search for a column that looks like a URL.
+      // Based on previous code, user mentioned 'study_url' in handleCellClick.
+      // Also FileUpload logic suggests header checking.
+      // Let's try to find a key that has 'url' in it or is 'study_url'.
+      const urlKey = Object.keys(row).find(
+        (key) => key.toLowerCase().includes("url") && row[key],
+      );
+
+      if (!urlKey) {
+        console.warn(`No URL found for row ${row.id}`);
+        return null;
+      }
+
+      const url = row[urlKey];
+
+      try {
+        console.log(`Scraping URL for row ${row.id}: ${url}`);
+        const result = await fetchContent({ url });
+        const extractedData = result.data; // { course, fees, deadline }
+
+        console.log(`Scraped data for row ${row.id}:`, extractedData);
+
+        // Update the row with extracted data
+        // We need to update the state.
+        return {
+          id: row.id,
+          updates: extractedData,
+        };
+      } catch (error) {
+        console.error(`Error scraping row ${row.id}:`, error);
+        return null;
+      }
+    });
+
+    const results = await Promise.all(promises);
+
+    // Update state with new data
+    setRows((prevRows) => {
+      return prevRows.map((row) => {
+        const update = results.find((r) => r && r.id === row.id);
+        if (update) {
+          return { ...row, ...update.updates };
+        }
+        return row;
+      });
+    });
   };
 
   const handleSearchChange = (event) => {
