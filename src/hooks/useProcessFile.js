@@ -1,6 +1,9 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { Box } from "@mui/material";
+import ErrorIcon from "@mui/icons-material/Error";
 import { httpsCallable } from "firebase/functions";
 import { functions } from "../lib/firebase/firebase";
+import * as XLSX from "xlsx";
 
 const STORAGE_KEY = "datagrid-column-visibility";
 
@@ -141,14 +144,7 @@ export function useProcessFile() {
 
     const fetchContent = httpsCallable(functions, "fetchContent");
 
-    // Process rows sequentially or in parallel?
-    // Let's do it concurrently but maybe limit concurrency if needed. For now, all at once.
     const promises = selectedRows.map(async (row) => {
-      // Find the URL column. Assuming 'study_url' or similar.
-      // Or search for a column that looks like a URL.
-      // Based on previous code, user mentioned 'study_url' in handleCellClick.
-      // Also FileUpload logic suggests header checking.
-      // Let's try to find a key that has 'url' in it or is 'study_url'.
       const urlKey = Object.keys(row).find(
         (key) => key.toLowerCase().includes("url") && row[key],
       );
@@ -167,26 +163,126 @@ export function useProcessFile() {
 
         console.log(`Scraped data for row ${row.id}:`, extractedData);
 
-        // Update the row with extracted data
-        // We need to update the state.
         return {
           id: row.id,
           updates: extractedData,
         };
       } catch (error) {
         console.error(`Error scraping row ${row.id}:`, error);
-        return null;
+        return {
+          id: row.id,
+          updates: {
+            error: "Fetch failed",
+            details:
+              error.message || "Could not retrieve content from the URL.",
+          },
+        };
       }
     });
 
-    const results = await Promise.all(promises);
+    const results = (await Promise.all(promises)).filter((r) => r !== null);
+
+    // Dynamically update columns based on new keys in results
+    setColumns((prevCols) => {
+      const newCols = [...prevCols];
+      const existingFields = new Set(newCols.map((c) => c.field));
+
+      // Collect all potential new keys from results
+      const allNewKeys = new Set();
+      results.forEach((r) => {
+        if (r.updates) {
+          Object.keys(r.updates).forEach((key) => allNewKeys.add(key));
+        }
+      });
+
+      // Sort keys to ensure 'error' and 'details' are processed first if present
+      const sortedKeys = Array.from(allNewKeys).sort((a, b) => {
+        if (a === "error") return -1;
+        if (b === "error") return 1;
+        if (a === "details") return -1;
+        if (b === "details") return 1;
+        return 0;
+      });
+
+      sortedKeys.forEach((key) => {
+        if (!existingFields.has(key)) {
+          let colDef = {
+            field: key,
+            headerName: key.charAt(0).toUpperCase() + key.slice(1),
+            width: 150,
+          };
+
+          // Apply specific formatting
+          if (key === "error") {
+            colDef = {
+              field: "error",
+              headerName: "Error",
+              width: 150,
+              renderCell: (params) =>
+                params.value ? (
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1,
+                      color: "error.main",
+                    }}
+                  >
+                    <ErrorIcon fontSize="small" />
+                    {params.value}
+                  </Box>
+                ) : null,
+            };
+          } else if (key === "details") {
+            colDef.width = 300;
+          } else if (key.startsWith("is_") || key.startsWith("has_")) {
+            colDef.type = "boolean";
+            colDef.width = 100;
+          } else if (key.includes("description")) {
+            colDef.width = 400;
+          } else if (key.includes("deadline")) {
+            colDef.width = 200;
+          }
+
+          // Insert logic: Error/Details go before smartId, others append
+          if (key === "error" || key === "details") {
+            const smartIdIndex = newCols.findIndex(
+              (c) => c.field === "smartId",
+            );
+            if (smartIdIndex !== -1) {
+              newCols.splice(smartIdIndex, 0, colDef);
+            } else {
+              newCols.unshift(colDef);
+            }
+          } else {
+            newCols.push(colDef);
+          }
+
+          // Add to existingFields to prevent duplicates in this loop if they somehow appear
+          existingFields.add(key);
+        }
+      });
+
+      return newCols;
+    });
 
     // Update state with new data
     setRows((prevRows) => {
       return prevRows.map((row) => {
-        const update = results.find((r) => r && r.id === row.id);
+        const update = results.find((r) => r.id === row.id);
         if (update) {
-          return { ...row, ...update.updates };
+          const merged = { ...row, ...update.updates };
+
+          // If there's an error, prioritize position: error, details, smartId, ...rest
+          if (update.updates.error) {
+            const { error, details, smartId, ...rest } = merged;
+            const ordered = { error, details };
+            if (smartId !== undefined) {
+              ordered.smartId = smartId;
+            }
+            return { ...ordered, ...rest };
+          }
+          return merged;
         }
         return row;
       });
@@ -208,6 +304,20 @@ export function useProcessFile() {
     setSearchText("");
   };
 
+  const handleDownloadXLSX = () => {
+    console.log("handleDownloadXLSX clicked");
+
+    if (rows.length === 0) {
+      alert("No data to download.");
+      return;
+    }
+
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Scraped Data");
+    XLSX.writeFile(workbook, "scraped_data.xlsx");
+  };
+
   return {
     rows,
     columns,
@@ -225,5 +335,6 @@ export function useProcessFile() {
     handleSearchChange,
     handleClearFile,
     handleClearSearch,
+    handleDownloadXLSX,
   };
 }

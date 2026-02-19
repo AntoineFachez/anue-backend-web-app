@@ -42,7 +42,21 @@ const FileUpload = forwardRef(({ onDataParsed }, ref) => {
           const rowData = { id: String(rowIndex) };
           headers.forEach((header, colIndex) => {
             const field = header || `col${colIndex}`;
-            rowData[field] = row[colIndex] || "";
+            let value = row[colIndex] || "";
+
+            // Normalize boolean fields if they come from Excel as strings
+            if (
+              (field.startsWith("is_") || field.startsWith("has_")) &&
+              typeof value === "string"
+            ) {
+              if (value.toLowerCase() === "true") {
+                value = true;
+              } else if (value.toLowerCase() === "false") {
+                value = false;
+              }
+            }
+
+            rowData[field] = value;
           });
 
           // Generate Smart ID

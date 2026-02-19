@@ -32,6 +32,7 @@ export default function Index() {
     handleSearchChange,
     handleClearFile,
     handleClearSearch,
+    handleDownloadXLSX,
   } = useProcessFile();
 
   const fileUploadRef = useRef(null);
@@ -71,6 +72,13 @@ export default function Index() {
         </Button>
         <Button onClick={handleClearFileWrapper} variant="contained">
           Delete File
+        </Button>
+        <Button
+          onClick={handleDownloadXLSX}
+          variant="contained"
+          color="secondary"
+        >
+          Download XLSX
         </Button>
         <TextField
           variant="outlined"
