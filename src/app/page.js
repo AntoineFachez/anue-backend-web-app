@@ -1,13 +1,35 @@
-import { Box, Typography } from "@mui/material";
+import { Box, Typography, Button } from "@mui/material";
 
 import styles from "./page.module.css";
+import Link from "next/link";
 
 export default function Home() {
   return (
     <Box className={styles.page}>
       <Typography variant="h1" sx={{ color: "white" }}>
-        Project Anue
+        anue backend
       </Typography>
+      <Link href="/processFile" passHref style={{ textDecoration: "none" }}>
+        <Button
+          variant="outlined"
+          sx={{
+            // bgcolor: "#1d3461ff",
+            color: "#fff",
+            textTransform: "none",
+            transition: "all 0.8s ease-in-out",
+            letterSpacing: "0.1rem",
+
+            "&:hover": {
+              bgcolor: "#0f1f3fff",
+              color: "#fff",
+              transition: "all 0.3s ease-in-out",
+              letterSpacing: "0.2rem",
+            },
+          }}
+        >
+          <Typography variant="h6">Load your List</Typography>
+        </Button>
+      </Link>
     </Box>
   );
 }

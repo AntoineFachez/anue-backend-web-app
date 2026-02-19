@@ -9,7 +9,7 @@ export default function layout({ children }) {
         height: "100%",
         marginTop: "3rem",
         overflow: "hidden",
-        backgroundColor: "black",
+        backgroundColor: "transparent",
       }}
     >
       {children}

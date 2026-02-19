@@ -27,7 +27,8 @@ exports.fetchContent = onCall({ secrets: [apiKey] }, async (request) => {
     // 2. Gemini Setup
     const genAI = new GoogleGenerativeAI(apiKey.value());
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash-lite",
+      model: "gemini-2.5-flash",
+
       tools: [{ googleSearch: {} }],
       generationConfig: {
         temperature: 0.1,
@@ -63,10 +64,11 @@ exports.fetchContent = onCall({ secrets: [apiKey] }, async (request) => {
       Erwartetes JSON Format:
       {
         "updated_url": "Falls ein neuer Link gesucht werden musste, hier eintragen. Sonst null. (String)",
-        "title": "Name des Studiengangs (String)",
-        "subtitle": "Spezifikation des Studienthemas (String)",
+
+        "title": "Name des Studiengangs an der spezifischen Hochschule (String)",
+        "subtitle": "Spezifikation des Studienthemas, z.B. Logistik, Management, Wirtschaftswissenschaften, Bioingenieurwesen (String)",
         "university_name": "Name der Hochschule (String)",
-        "location": "Stadt/Standort (String)",
+        "location": "Stadt/Standort, z.B. München, Deutschland (String)",
         "degree": "Abschlussart (z.B. Bachelor, Master)",
         "degree_specification": "Genauer Titel (z.B. Bachelor of Science, B.A.)",
         "study_length_semester": "Regelstudienzeit in Semestern (Number)",
@@ -100,23 +102,25 @@ exports.fetchContent = onCall({ secrets: [apiKey] }, async (request) => {
           "winter": "Tatsächlicher Studienbeginn im Wintersemester (String, z.B. '01. Oktober', 'Anfang September' oder null)",
           "summer": "Tatsächlicher Studienbeginn im Sommersemester (String, z.B. '15. März', 'Frühjahr' oder null)"
         },
-        "study_types": {
-          "is_fulltime": ist das ein Vollzeitstudium? (boolean),
-          "is_parttime": ist das ein Teilzeitstudium? (boolean),
-          "is_dual": ist das ein Duales Studium? (boolean),
-          "is_fern": ist das ein Fernstudium? (boolean)
+
+       "study_types": {
+          "is_fulltime": "ist das ein Vollzeitstudium? (boolean)",
+          "is_parttime": "ist das ein Teilzeitstudium? (boolean)",
+          "is_dual": "ist das ein Duales Studium? (boolean)",
+          "is_fern": "ist das ein Fernstudium? (boolean)"
         },
         "languages": {
-          "is_german": ist das ein deutschsprachiges Studium? (boolean),
-          "is_english": ist das ein englischsprachiges Studium? (boolean),
-          "is_french": ist das ein französischsprachiges Studium? (boolean),
-          "is_spanish": ist das ein spanischsprachiges Studium? (boolean)
+          "is_german": "ist das ein deutschsprachiges Studium? (boolean)",
+          "is_english": "ist das ein englischsprachiges Studium? (boolean)",
+          "is_french": "ist das ein französischsprachiges Studium? (boolean)",
+          "is_spanish": "ist das ein spanischsprachiges Studium? (boolean)"
+
         },
         "description": "Kurze Zusammenfassung des Studiengangs (max 300 Zeichen)"
       }
 
       Webseiten-Text:
-      ${rawHtml ? rawHtml.substring(0, 25000) : "LEER - DIE SEITE KONNTE NICHT GELADEN WERDEN."} 
+      ${rawHtml ? rawHtml.substring(0, 150000) : "LEER - DIE SEITE KONNTE NICHT GELADEN WERDEN."} 
     `;
 
     // 4. Generate
@@ -128,64 +132,90 @@ exports.fetchContent = onCall({ secrets: [apiKey] }, async (request) => {
       .replace(/```json/g, "")
       .replace(/```/g, "")
       .trim();
-    const data = JSON.parse(responseText);
+
+    console.log("Gemini Raw Response:", responseText); // DEBUGGING LINE
+
+    let data;
+    try {
+      if (!responseText) {
+        throw new Error("Empty response from AI model");
+      }
+      data = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error("JSON Parse Error. Raw Text:", responseText);
+      throw new Error(
+        `Failed to parse AI response: ${parseError.message}. Content was: ${responseText.substring(0, 100)}...`,
+      );
+    }
 
     // 5. Mapping zurück
 
     return {
-      original_url: url,
-      updated_url: data.updated_url || null,
+      // 1. Identifikation & System
+      // id, course_id, smartId, originalId - Set by frontend/system
 
-      // BASIS DATEN
-      title: data.title,
-      university_name: data.university_name,
-      location: data.location,
+      // 2. Basisdaten Hochschule & Studiengang
+      university_name: data.university_name || "Unknown University",
+      title: data.title || "Unknown Title",
+      subtitle: data.subtitle || null,
+      location: data.location || "Unknown Location",
+      description: data.description || "",
 
-      // STUDIEN-STRUKTUR (WICHTIG FÜR VERGLEICHBARKEIT)
-      degree: data.degree,
-      degree_specification: data.degree_specification, // z.B. "M.Sc."
-      credits_ects: data.credits_ects || null, // NEU: z.B. 120
-      study_length_semester: data.study_length_semester,
+      // 3. Abschluss & Studienstruktur
+      degree: data.degree || "",
+      degree_specification: data.degree_specification || "",
+      study_length_semester: data.study_length_semester || 0,
+      credits_ects: data.credits_ects || null,
 
-      // QUALITÄTS-MERKMALE
-      has_study_abroad: data.program_features?.has_study_abroad || false, // NEU
-      has_mandatory_internship: data.program_features?.has_internship || false, // NEU
+      // 4. Studienform (Flags)
 
-      // FINANZEN (DETAILLIERTER)
-      study_tuition_semester_eur: data.study_tuition_semester_eur,
-      fees_application_eur: data.fees?.application_fee || 0, // NEU: Einmalig (z.B. 50€)
-      fees_enrollment_eur: data.fees?.enrollment_fee || 0, // NEU: Einmalig (z.B. 1000€ Deposit)
-
-      // ZULASSUNG & FRISTEN
-      zulassungsmodus: data.zulassungsmodus,
-      required_english_skills: data.requirements?.english_proof || null, // NEU: z.B. "TOEFL 90"
-
-      deadline_winter_date: data.deadlines?.winter?.exact_date || null,
-      deadline_winter_text: data.deadlines?.winter?.display_text || null,
-      deadline_winter_sort: data.deadlines?.winter?.sort_date || null,
-
-      deadline_summer_date: data.deadlines?.summer?.exact_date || null,
-      deadline_summer_text: data.deadlines?.summer?.display_text || null,
-      deadline_summer_sort: data.deadlines?.summer?.sort_date || null,
-
-      // NEU: Die tatsächlichen Starttermine
-      start_date_winter: data.start_dates?.winter || null,
-      start_date_summer: data.start_dates?.summer || null,
-
-      // FLAGS
       is_fulltime: data.study_types?.is_fulltime || false,
       is_parttime: data.study_types?.is_parttime || false,
       is_dual: data.study_types?.is_dual || false,
       is_fern: data.study_types?.is_fern || false,
+      // is_employment_adjunct - Not scraped currently
 
-      // SPRACHEN
+      // 5. Sprachen (Flags)
       study_language_deutsch: data.languages?.is_german || false,
       study_language_englisch: data.languages?.is_english || false,
       study_language_franzoesisch: data.languages?.is_french || false,
       study_language_spanisch: data.languages?.is_spanish || false,
 
-      description: data.description,
+      // 6. Qualität & Spezifika
+      has_study_abroad: data.program_features?.has_study_abroad || false,
+      has_mandatory_internship: data.program_features?.has_internship || false,
+
+      // 7. Zulassung & Voraussetzungen
+      zulassungsmodus: data.zulassungsmodus || "Unknown",
+      required_english_skills: data.requirements?.english_proof || null,
+
+      // 8. Kosten & Finanzen
+      study_tuition_semester_eur: data.study_tuition_semester_eur || 0,
+      fees_application_eur: data.fees?.application_fee || 0,
+      fees_enrollment_eur: data.fees?.enrollment_fee || 0,
+
+      // 9. Termine: Wintersemester
+      start_date_winter: data.start_dates?.winter || null,
+      deadline_winter_date: data.deadlines?.winter?.exact_date || null,
+      deadline_winter_text: data.deadlines?.winter?.display_text || null,
+      deadline_winter_sort: data.deadlines?.winter?.sort_date || null,
+
+      // 10. Termine: Sommersemester
+      start_date_summer: data.start_dates?.summer || null,
+      deadline_summer_date: data.deadlines?.summer?.exact_date || null,
+      deadline_summer_text: data.deadlines?.summer?.display_text || null,
+      deadline_summer_sort: data.deadlines?.summer?.sort_date || null,
+
+      // 11. Scraping-Metadaten & URLs
+      original_url: url,
+      updated_url: data.updated_url || null,
       scraped_at: new Date().toISOString(),
+
+      // 12. App-Steuerung & Sonstiges
+      // is_active, Comments - Set by frontend/system
+
+      // 13. Veraltete / Rohe Felder (Empfehlung: Später löschen)
+      // study_semester, start_winter, deadline_winter, start_summer, deadline_summer
     };
   } catch (error) {
     console.error("AI Processing Error:", error);

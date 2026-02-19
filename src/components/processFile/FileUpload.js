@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useRef, useImperativeHandle, forwardRef } from "react";
-import { Box } from "@mui/material";
+
+import { Box, Button } from "@mui/material";
+import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import * as XLSX from "xlsx";
 import { generateSmartID } from "../../utils/smartIdGenerator";
 
@@ -109,9 +111,17 @@ const FileUpload = forwardRef(({ onDataParsed }, ref) => {
       <input
         type="file"
         accept=".xlsx, .xls"
+        style={{ display: "none" }}
         onChange={handleFileUpload}
         ref={fileInputRef}
       />
+      <Button
+        variant="contained"
+        startIcon={<CloudUploadIcon />}
+        onClick={() => fileInputRef.current?.click()}
+      >
+        Select File
+      </Button>
     </Box>
   );
 });

@@ -1,3 +1,5 @@
+// file path: ~/DEVFOLD/ANUE-BACKEND/SRC/THEME.JS
+
 "use client";
 
 import { createTheme } from "@mui/material/styles";
@@ -19,7 +21,14 @@ const theme = createTheme({
   },
   typography: {
     fontFamily: "var(--font-geist-sans), sans-serif",
+    h1: {
+      fontFamily: '"Ubuntu", var(--font-ubuntu), sans-serif',
+      fontWeight: 700,
+      // textTransform: "uppercase",
+      letterSpacing: "0.05em", // Slight spacing to match the logo feel
+    },
   },
+
   components: {
     MuiButton: {
       styleOverrides: {

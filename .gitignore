@@ -40,3 +40,18 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# firebase
+.firebase
+firebase-debug.log*
+ui-debug.log*
+firestore-debug.log*
+
+# IDEs
+.idea
+.vscode
+*.swp
+*.swo
+
+# backend dependencies
+/functions/node_modules

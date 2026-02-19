@@ -38,7 +38,7 @@ export default function CustomDataGrid({
 
   if (!rows || rows.length === 0 || !columns || columns.length === 0)
     return null;
-
+  const borderColor = theme.palette.mode === "dark" ? "#555555ff" : "#595959ff";
   return (
     <Box
       sx={{
@@ -72,6 +72,26 @@ export default function CustomDataGrid({
           "& .MuiDataGrid-cell": {
             color: "text.primary",
           },
+          // Make Checkbox Column Sticky
+          "& .MuiDataGrid-columnHeader--checkbox, & .MuiDataGrid-cell--checkbox":
+            {
+              position: "sticky",
+              left: 0,
+              zIndex: 1,
+              backgroundColor: theme.palette.background.paper,
+            },
+          "& .MuiDataGrid-columnHeader--checkbox": {
+            zIndex: 2,
+          },
+          "& .MuiCheckbox-root": {
+            zIndex: 2,
+            color: borderColor,
+          },
+          "& .Mui-checked": {
+            zIndex: 2,
+            color: "steelblue",
+          },
+          "--DataGrid-rowBorderColor": borderColor,
         }}
         {...props}
       />

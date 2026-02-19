@@ -1,18 +1,32 @@
-# Anue Backend Web App
-
-A powerful Next.js 16 application designed for intelligent data processing, combining bulk file uploads, web scraping, and AI-driven data extraction using Google's Gemini.
+# anue-backend-web-app
 
 ## Overview
 
-The primary goal of this application is to streamline the workflow of extracting structured data from web sources. It provides a robust interface for uploading datasets (Excel/CSV), visualizing them in an advanced DataGrid, and processing rows through an automated pipeline that scrapes HTML content and leverages LLMs for precise data extraction.
+A specialized backend interface for:
+
+1.  **Ingesting** Excel files (`.xlsx`) containing university course data.
+2.  **Visualizing** data in a high-performance DataGrid.
+3.  **Enhancing** data by scraping detailed course information (fees, deadlines, requirements) from university websites using **AI (Gemini)**.
+4.  **Managing** the data cleaning process before persistence.
+
+## Project Structure
+
+- `src/app`: Next.js App Router pages and layouts.
+- `src/components/dataGrid`: Reusable `CustomDataGrid` component with sticky columns and custom styling.
+- `src/components/processFile`: File process UI, including `FileUpload` and the control `Menu`.
+- `src/hooks`: Custom hooks like `useProcessFile` for managing grid state and scraping triggers.
+- `src/utils`: Utility functions (e.g., `smartIdGenerator`).
+- `functions`: Firebase Cloud Functions (Gen 2).
+  - `triggers`: Event-driven and callable functions (e.g., `callableScraper`).
+  - `services`: Business logic and external service integrations (e.g., `scraperService`).
 
 ## Key Features
 
-- **Modern Architecture**: Built with Next.js 16 (App Router) for performance and scalability.
-- **Advanced Data Management**: Utilize `@mui/x-data-grid` v8 for a spreadsheet-like experience.
+- **Advanced DataGrid**:
   - **Global Search**: Instantly filter across all columns using the dedicated search bar.
   - **Enhanced Pagination**: Support for large datasets with configurable page sizes (up to 100 rows).
   - **Sorting & Filtering**: Built-in column sorting and complex filtering capabilities.
+  - **Sticky Columns**: Key columns (like selection checkboxes) remain visible while scrolling horizontally.
 - **Bulk Processing Pipeline**:
   - **Ingest**: Upload and parse `.xlsx` files via the `/processFile` route.
   - **Smart ID Generation**: Automatically generates a unique "Smart ID" (`CITY-LEVEL-SUBJECT-INDEX`) for each record during parsing.
@@ -20,60 +34,39 @@ The primary goal of this application is to streamline the workflow of extracting
   - **Visualize**: View and refine extracted data directly within the DataGrid.
 - **Robust Selection**: Custom "Select All" implementation for handling large datasets with inclusion/exclusion logic.
 - **State Persistence**: Column visibility and width settings are persisted in `localStorage`.
-- **File Management**: Ability to clear loaded data and reset the file input.
+- **File Management**: Integrated **Control Menu** for file operations (clear, download, scrape).
 - **Cloud Integration**: Powered by Firebase Functions for scalable backend processing and storage.
 
-## Setup
+## AI Data Extraction Pipeline
 
-1. Install dependencies:
+The core of the application is its intelligent scraping and extraction engine:
 
-   ```bash
-   npm install
-   ```
-
-2. Run the development server:
-
-   ```bash
-   npm run dev
-   ```
-
-3. Open [http://localhost:3000](http://localhost:3000) to view the app.
-
-## Project Structure
-
-- `src/app`: Next.js App Router pages and layouts.
-- `src/components/dataGrid`: Reusable `CustomDataGrid` component with advanced features.
-- `src/components/processFile`: File upload, parsing, and processing interface.
-- `src/hooks`: Custom hooks for logic reuse (e.g., `useProcessFile`).
-- `src/utils`: Utility functions (e.g., `smartIdGenerator`).
-- `src/lib`: Shared resources and data (e.g., `geodata`).
-- `functions`: Firebase Cloud Functions for backend logic (scraping, AI extraction).
+1.  **Trigger**: Users select rows in the DataGrid and click "Scrape HTML Content".
+2.  **Fetch**: The system attempts to fetch the raw HTML content of the target URL.
+    - _Resilience_: If a 404 error occurs, the system flags this for the AI.
+3.  **AI Processing (Gemini 2.5 Flash)**:
+    - The raw HTML (or error context) is sent to Google's Gemini model.
+    - **Fallback Search**: If the URL is invalid (404), Gemini uses its Google Search tool to find the correct, up-to-date program page.
+    - **Extraction**: Gemini extracts structured data (JSON) including:
+      - Start Dates & Deadlines (normalized to YYYY-MM-DD)
+      - Tuple/Fees information
+      - Program features (Language, Flags for Dual/Part-time)
+4.  **Update**: The extracted data is automatically merged back into the DataGrid, updating columns and rows in real-time.
 
 ## Smart ID Logic
 
-The application generates a predictable "Smart ID" for each course record using the following format:
-`CITY-LEVEL-SUBJECT-INDEX`
+The `generateSmartID` utility creates readable identifiers using the logic:
+`CITY_CODE` - `LEVEL` - `SUBJECT` - `ORIGINAL_ID`
 
-- **CITY**: Derived from the "Location" or "City" column. Mapped to UN/LOCODE or a 3-letter abbreviation (e.g., "Berlin" -> "BER").
-- **LEVEL**: Derived from the "Degree" column. 'B' for Bachelor, 'M' for Master/Other.
-- **SUBJECT**: Derived from the "Title" column.
-  - 'CS': Computer Science, Data
-  - 'BM': Business, Management, Finance, Communication
-  - 'SW': Social Work, Pädagogik
-  - 'HE': Health, Biomedical
+- **CITY_CODE**: UN/LOCODE or 3-letter prefix (e.g., 'FRA' for Frankfurt).
+- **LEVEL**: 'B' (Bachelor) or 'M' (Master).
+- **SUBJECT**: derived from title keywords:
+  - 'CS': Computer/Data
+  - 'BM': Business/Management
+  - 'SW': Social Work
+  - 'HE': Health
   - 'GN': General (default)
 - **INDEX**: The original row index from the source file.
-
-## Future Improvements
-
-- write data schema for scraped data
-- write logic to:
-  - loop rows
-  - foreach row: scrape html content
-  - save scraped data to firebase
-  - trigger cloud function to extract data from html content using Gemini
-  - save extracted data to firebase
-  - display extracted data in DataGrid
 
 ## Configuration
 
@@ -96,8 +89,6 @@ The application uses Firebase Cloud Functions which require specific secrets to 
     firebase functions:secrets:set FIREBASE_CREDS
     # Paste your Firebase Service Account Credentials (JSON minified or path)
     ```
-
-    _Note: `FIREBASE_CREDS` might be needed if you are using specific server-side logic requiring admin privileges, otherwise `GEMINI_API_KEY` is the primary requirement for the AI features._
 
 ## Deployment
 

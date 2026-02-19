@@ -7,6 +7,70 @@ import * as XLSX from "xlsx";
 
 const STORAGE_KEY = "datagrid-column-visibility";
 
+const COLUMN_ORDER = [
+  // 1. Identifikation & System
+  "id",
+  "course_id",
+  "smartId",
+  "originalId",
+  // 2. Basisdaten Hochschule & Studiengang
+  "university_name",
+  "title",
+  "subtitle",
+  "location",
+  "description",
+  // 3. Abschluss & Studienstruktur
+  "degree",
+  "degree_specification",
+  "study_length_semester",
+  "credits_ects",
+  // 4. Studienform (Flags)
+  "is_fulltime",
+  "is_parttime",
+  "is_dual",
+  "is_fern",
+  "is_employment_adjunct",
+  // 5. Sprachen (Flags)
+  "study_language_deutsch",
+  "study_language_englisch",
+  "study_language_franzoesisch",
+  "study_language_spanisch",
+  // 6. Qualität & Spezifika
+  "has_study_abroad",
+  "has_mandatory_internship",
+  // 7. Zulassung & Voraussetzungen
+  "zulassungsmodus",
+  "required_english_skills",
+  // 8. Kosten & Finanzen
+  "study_tuition_semester_eur",
+  "fees_application_eur",
+  "fees_enrollment_eur",
+  // 9. Termine: Wintersemester
+  "start_date_winter",
+  "deadline_winter_date",
+  "deadline_winter_text",
+  "deadline_winter_sort",
+  // 10. Termine: Sommersemester
+  "start_date_summer",
+  "deadline_summer_date",
+  "deadline_summer_text",
+  "deadline_summer_sort",
+  // 11. Scraping-Metadaten & URLs
+  "study_url",
+  "original_url",
+  "updated_url",
+  "scraped_at",
+  // 12. App-Steuerung & Sonstiges
+  "is_active",
+  "Comments",
+  // 13. Veraltete / Rohe Felder (Empfehlung: Später löschen)
+  "study_semester",
+  "start_winter",
+  "deadline_winter",
+  "start_summer",
+  "deadline_summer",
+];
+
 export function useProcessFile() {
   const [rows, setRows] = useState([]);
   const [columns, setColumns] = useState([]);
@@ -86,10 +150,28 @@ export function useProcessFile() {
 
     // Ensure 'smartId' column exists if not present
     // It should be coming from FileUpload now, but we can keep a check or just Trust FileUpload
-    // Logic was moved to FileUpload.js
+    // Sort columns based on COLUMN_ORDER
+    const sortedFinalColumns = finalColumns.sort((a, b) => {
+      // Special handling for error/details
+      if (a.field === "error") return -1;
+      if (b.field === "error") return 1;
+      if (a.field === "details") return -1;
+      if (b.field === "details") return 1;
+
+      const indexA = COLUMN_ORDER.indexOf(a.field);
+      const indexB = COLUMN_ORDER.indexOf(b.field);
+
+      if (indexA !== -1 && indexB !== -1) {
+        return indexA - indexB;
+      }
+      if (indexA !== -1) return -1; // a is in list, b is not -> a comes first
+      if (indexB !== -1) return 1; // b is in list, a is not -> b comes first
+
+      return 0; // maintain relative order for unknown columns
+    });
 
     setRows(newRows);
-    setColumns(finalColumns);
+    setColumns(sortedFinalColumns);
   };
 
   const handleCellClick = (params) => {
@@ -144,14 +226,20 @@ export function useProcessFile() {
 
     const fetchContent = httpsCallable(functions, "fetchContent");
 
-    const promises = selectedRows.map(async (row) => {
+    const results = [];
+    for (const [index, row] of selectedRows.entries()) {
+      // Add delay between requests to prevent IP blocking
+      if (index > 0) {
+        await new Promise((resolve) => setTimeout(resolve, 800));
+      }
+
       const urlKey = Object.keys(row).find(
         (key) => key.toLowerCase().includes("url") && row[key],
       );
 
       if (!urlKey) {
         console.warn(`No URL found for row ${row.id}`);
-        return null;
+        continue;
       }
 
       const url = row[urlKey];
@@ -163,26 +251,24 @@ export function useProcessFile() {
 
         console.log(`Scraped data for row ${row.id}:`, extractedData);
 
-        return {
+        results.push({
           id: row.id,
           updates: extractedData,
-        };
+        });
       } catch (error) {
         console.error(`Error scraping row ${row.id}:`, error);
-        return {
+        results.push({
           id: row.id,
           updates: {
             error: "Fetch failed",
             details:
               error.message || "Could not retrieve content from the URL.",
           },
-        };
+        });
       }
-    });
+    }
 
-    const results = (await Promise.all(promises)).filter((r) => r !== null);
-
-    // Dynamically update columns based on new keys in results
+    // Dynamically update columns based on new keys in results AND sort everything
     setColumns((prevCols) => {
       const newCols = [...prevCols];
       const existingFields = new Set(newCols.map((c) => c.field));
@@ -195,16 +281,8 @@ export function useProcessFile() {
         }
       });
 
-      // Sort keys to ensure 'error' and 'details' are processed first if present
-      const sortedKeys = Array.from(allNewKeys).sort((a, b) => {
-        if (a === "error") return -1;
-        if (b === "error") return 1;
-        if (a === "details") return -1;
-        if (b === "details") return 1;
-        return 0;
-      });
-
-      sortedKeys.forEach((key) => {
+      // Add new columns if they don't exist
+      allNewKeys.forEach((key) => {
         if (!existingFields.has(key)) {
           let colDef = {
             field: key,
@@ -244,26 +322,34 @@ export function useProcessFile() {
             colDef.width = 200;
           }
 
-          // Insert logic: Error/Details go before smartId, others append
-          if (key === "error" || key === "details") {
-            const smartIdIndex = newCols.findIndex(
-              (c) => c.field === "smartId",
-            );
-            if (smartIdIndex !== -1) {
-              newCols.splice(smartIdIndex, 0, colDef);
-            } else {
-              newCols.unshift(colDef);
-            }
-          } else {
-            newCols.push(colDef);
-          }
-
-          // Add to existingFields to prevent duplicates in this loop if they somehow appear
+          newCols.push(colDef);
           existingFields.add(key);
         }
       });
 
-      return newCols;
+      // Sort ALL columns based on COLUMN_ORDER
+      // Items not in COLUMN_ORDER go to the end
+      // 'error' and 'details' are special cases -> always put them first for visibility if present
+      const sortedCols = newCols.sort((a, b) => {
+        // Special handling for error/details
+        if (a.field === "error") return -1;
+        if (b.field === "error") return 1;
+        if (a.field === "details") return -1;
+        if (b.field === "details") return 1;
+
+        const indexA = COLUMN_ORDER.indexOf(a.field);
+        const indexB = COLUMN_ORDER.indexOf(b.field);
+
+        if (indexA !== -1 && indexB !== -1) {
+          return indexA - indexB;
+        }
+        if (indexA !== -1) return -1; // a is in list, b is not -> a comes first
+        if (indexB !== -1) return 1; // b is in list, a is not -> b comes first
+
+        return 0; // maintain relative order for unknown columns
+      });
+
+      return sortedCols;
     });
 
     // Update state with new data
