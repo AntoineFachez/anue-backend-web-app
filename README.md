@@ -119,6 +119,8 @@ To deploy the application to Firebase, follow these steps:
 
 ## Future Improvements
 
+**Data Scraping & Extraction (Core Engine)**
+
 - [x] write data schema for scraped data
 - write logic to:
   - [x] loop rows
@@ -127,3 +129,24 @@ To deploy the application to Firebase, follow these steps:
   - [x] trigger cloud function to extract data from html content using Gemini
   - [ ] save extracted data to firebase
   - [x] display extracted data in DataGrid
+
+**Live Database Management (CMS Features)**
+
+- [ ] Implement a "Live Database" tab
+  - [ ] Connect AG Grid directly to Firestore (using `onSnapshot` or pagination) instead of relying solely on local CSV state
+  - [ ] Introduce a `status` column (e.g., "Needs Scraping", "Up to Date", "Error", "Review Pending")
+  - [ ] Add quick-filters to identify outdated records (e.g., `scraped_at` older than 6 months)
+
+**Batch-Job Manager & Background Processing**
+
+- [ ] Refactor scraping process to be fully asynchronous
+  - [ ] Move the scraping loop from the client-side to a backend Task Queue / Cloud Task
+  - [ ] Build a "Job Monitor" dashboard in the frontend
+  - [ ] Display real-time progress bars (e.g., "150/5000 URLs processed") and error logs for batch jobs
+
+**Human-in-the-Loop (HITL) & Validation UI**
+
+- [ ] Create a Data Review workflow to prevent AI hallucinations in production
+  - [ ] Build a Split-Screen / Diff Viewer modal for records pending review
+  - [ ] Highlight changed, new, or missing values between old DB data and newly scraped AI data
+  - [ ] Implement a manual "Approve & Save to DB" action for the admin
