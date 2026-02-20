@@ -1,64 +1,65 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { Box, Chip } from "@mui/material";
+import { Box, Chip, Typography } from "@mui/material";
 
 import { Check, Close, Error } from "@mui/icons-material";
 
 const STORAGE_KEY = "datagrid-column-visibility";
 
 const COLUMN_ORDER = [
-  // 1. Identifikation & System
-  "id",
-  "course_id",
-  "smartId",
-  "originalId",
-  // 2. Basisdaten Hochschule & Studiengang
-  "university_name",
-  "title",
-  "subtitle",
-  "location",
-  "description",
-  // 3. Abschluss & Studienstruktur
-  "degree",
-  "degree_specification",
-  "study_length_semester",
-  "credits_ects",
-  // 4. Studienform (Flags)
-  "is_fulltime",
-  "is_parttime",
-  "is_dual",
-  "is_fern",
-  "is_employment_adjunct",
-  // 5. Sprachen (Flags)
-  "study_language_deutsch",
-  "study_language_englisch",
-  "study_language_franzoesisch",
-  "study_language_spanisch",
-  // 6. Qualität & Spezifika
-  "has_study_abroad",
-  "has_mandatory_internship",
-  // 7. Zulassung & Voraussetzungen
-  "zulassungsmodus",
-  "required_english_skills",
-  // 8. Kosten & Finanzen
-  "study_tuition_semester_eur",
-  "fees_application_eur",
-  "fees_enrollment_eur",
-  // 9. Termine: Wintersemester
-  "start_date_winter",
-  "deadline_winter_date",
-  "deadline_winter_text",
-  "deadline_winter_sort",
-  // 10. Termine: Sommersemester
-  "start_date_summer",
-  "deadline_summer_date",
-  "deadline_summer_text",
-  "deadline_summer_sort",
-  // 11. Scraping-Metadaten & URLs
+  // 1. Scraping-Metadaten & URLs
   "scrape_status",
   "study_url",
   "original_url",
   "updated_url",
   "scraped_at",
+  // 2. Identifikation & System
+  "id",
+  "course_id",
+  "smartId",
+  "originalId",
+  // 3. Basisdaten Hochschule & Studiengang
+  "university_name",
+  "title",
+  "subtitle",
+  "location",
+  "description",
+  // 4. Abschluss & Studienstruktur
+  "degree",
+  "degree_specification",
+  "study_length_semester",
+  "credits_ects",
+  // 5. Studienform (Flags)
+  "is_fulltime",
+  "is_parttime",
+  "is_dual",
+  "is_fern",
+  "is_employment_adjunct",
+  // 6. Sprachen (Flags)
+  "study_language_deutsch",
+  "study_language_englisch",
+  "study_language_franzoesisch",
+  "study_language_spanisch",
+  // 7. Qualität & Spezifika
+  "has_study_abroad",
+  "has_mandatory_internship",
+  // 8. Zulassung & Voraussetzungen
+  "zulassungsmodus",
+  "required_english_skills",
+  // 9. Kosten & Finanzen
+  "study_tuition_semester_eur",
+  "fees_application_eur",
+  "fees_enrollment_eur",
+  // 10. Termine: Wintersemester
+  "start_date_winter",
+  "deadline_winter_date",
+  "deadline_winter_text",
+  "deadline_winter_sort",
+  // 11. Termine: Sommersemester
+  "start_date_summer",
+  "deadline_summer_date",
+  "deadline_summer_text",
+  "deadline_summer_sort",
+
   // 12. App-Steuerung & Sonstiges
   "is_active",
   "Comments",
