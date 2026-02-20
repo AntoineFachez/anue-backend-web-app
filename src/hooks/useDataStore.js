@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { Box, Chip } from "@mui/material";
-import ErrorIcon from "@mui/icons-material/Error";
-import { Check, Close } from "@mui/icons-material";
-import { loadCoursesFromDB, saveCoursesToDB } from "@/services/courseService";
+
+import { Check, Close, Error } from "@mui/icons-material";
 
 const STORAGE_KEY = "datagrid-column-visibility";
 
@@ -55,6 +54,7 @@ const COLUMN_ORDER = [
   "deadline_summer_text",
   "deadline_summer_sort",
   // 11. Scraping-Metadaten & URLs
+  "scrape_status",
   "study_url",
   "original_url",
   "updated_url",
@@ -70,6 +70,15 @@ const COLUMN_ORDER = [
   "deadline_summer",
 ];
 
+import {
+  loadCoursesFromDB,
+  saveCoursesToDB,
+  listenToCoursesDB,
+} from "@/services/courseService";
+import { CircularProgress } from "@mui/material";
+
+// ... [Skipping unchanged imports and COLUMN_ORDER setup to reach hook definition]
+
 export function useDataStore() {
   const [rows, setRows] = useState([]);
   const [columns, setColumns] = useState([]);
@@ -80,7 +89,9 @@ export function useDataStore() {
   const timeoutRef = useRef(null);
 
   useEffect(() => {
-    const initStore = async () => {
+    let unsubscribe = null;
+
+    const initStore = () => {
       let savedVisibility = {};
 
       // 1. Recover column visibility
@@ -95,35 +106,43 @@ export function useDataStore() {
         }
       }
 
-      // 2. Load records from Firestore DB
-      try {
-        const dbCourses = await loadCoursesFromDB();
-
+      // 2. Set up real-time listener
+      unsubscribe = listenToCoursesDB((dbCourses) => {
         if (dbCourses && dbCourses.length > 0) {
-          // If we have rows from DB, we need to generate columns dynamically
-          // since they aren't parsed by Excel. We can run handleDataParsed manually.
-
-          // Generate column definitions from the first fetched row's keys
-          const firstRow = dbCourses[0];
-          const dynamicColumns = Object.keys(firstRow).map((key) => ({
-            field: key,
-            headerName: key.charAt(0).toUpperCase() + key.slice(1),
-            width: 150,
-            // add basic type mappings if needed here
-          }));
-
-          handleDataParsed(dbCourses, dynamicColumns);
+          // Keep selection and scroll intact by updating rows via state updater,
+          // but if it's the first load, we might need to parse columns.
+          setRows((prevRows) => {
+            // Only rebuild columns if we didn't have any before
+            if (prevRows.length === 0) {
+              const firstRow = dbCourses[0];
+              const dynamicColumns = Object.keys(firstRow).map((key) => ({
+                field: key,
+                headerName: key.charAt(0).toUpperCase() + key.slice(1),
+                width: 150,
+              }));
+              // We need a way to set columns without creating a stale closure over handleDataParsed here.
+              // We'll call a helper function instead.
+              setTimeout(() => setupInitialColumns(dynamicColumns), 0);
+            }
+            return dbCourses;
+          });
+        } else {
+          setRows([]);
         }
-      } catch (e) {
-        console.error("Failed to load initially from DB:", e);
-      } finally {
         setIsLoaded(true);
-      }
+      });
     };
 
     initStore();
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const setupInitialColumns = (initialDynamicColumns) => {
+    handleDataParsed([], initialDynamicColumns); // empty rows because onSnapshot handles rows
+  };
 
   // Compute selected rows based on the model and rows
   const selectedRows = useMemo(() => {
@@ -202,6 +221,69 @@ export function useDataStore() {
           },
         };
       }
+      if (col.field === "scrape_status") {
+        return {
+          ...col,
+          width: 150,
+          renderCell: (params) => {
+            const status = params.value;
+            if (status === "PENDING_SCRAPE" || status === "SCRAPING") {
+              return (
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1,
+                    height: "100%",
+                  }}
+                >
+                  <CircularProgress size={16} />
+                  <Typography variant="body2">
+                    {status === "SCRAPING" ? "Scraping..." : "Pending"}
+                  </Typography>
+                </Box>
+              );
+            }
+            if (status === "COMPLETED") {
+              return (
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1,
+                    height: "100%",
+                    color: "success.main",
+                  }}
+                >
+                  <Check fontSize="small" />
+                  <Typography variant="body2">Done</Typography>
+                </Box>
+              );
+            }
+            if (status === "ERROR") {
+              return (
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1,
+                    height: "100%",
+                    color: "error.main",
+                  }}
+                >
+                  <Error fontSize="small" />
+                  <Typography variant="body2">Error</Typography>
+                </Box>
+              );
+            }
+            return (
+              <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                Not Scraped
+              </Typography>
+            );
+          },
+        };
+      }
       return col;
     });
 
@@ -223,7 +305,12 @@ export function useDataStore() {
       return 0;
     });
 
-    setRows(newRows);
+    if (newRows && newRows.length > 0) {
+      setRows((prev) => {
+        // Only set rows if they are passed in explicitly (e.g. from Excel upload)
+        return newRows;
+      });
+    }
     setColumns(sortedFinalColumns);
   };
 
@@ -299,7 +386,7 @@ export function useDataStore() {
                       color: "error.main",
                     }}
                   >
-                    <ErrorIcon fontSize="small" />
+                    <Error fontSize="small" />
                     {params.value}
                   </Box>
                 ) : null,

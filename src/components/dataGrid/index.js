@@ -164,6 +164,12 @@ export default function CustomDataGrid({
           let classes = [];
           if (expandedRows.includes(params.id)) classes.push("expanded-row");
           if (params.row.error) classes.push("error-row");
+          if (
+            params.row.scrape_status === "PENDING_SCRAPE" ||
+            params.row.scrape_status === "SCRAPING"
+          ) {
+            classes.push("processing-row");
+          }
           return classes.join(" ");
         }}
         checkboxSelection
@@ -286,6 +292,41 @@ export default function CustomDataGrid({
             color: "steelblue",
           },
           "--DataGrid-rowBorderColor": borderColor,
+
+          // Processing Row Animation
+          "@keyframes spin": {
+            "0%": { transform: "rotate(0deg)" },
+            "100%": { transform: "rotate(360deg)" },
+          },
+          "& .processing-row": {
+            backgroundColor: "rgba(25, 118, 210, 0.08)",
+            "&:hover": {
+              backgroundColor: "rgba(25, 118, 210, 0.12)",
+            },
+          },
+          "& .processing-row .MuiDataGrid-cellCheckbox": {
+            position: "relative",
+          },
+          "& .processing-row .MuiDataGrid-cellCheckbox .MuiCheckbox-root": {
+            opacity: 0,
+            pointerEvents: "none",
+          },
+          "& .processing-row .MuiDataGrid-cellCheckbox::before": {
+            content: '""',
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            marginTop: "-8px",
+            marginLeft: "-8px",
+            width: "16px",
+            height: "16px",
+            border: `2px solid ${borderColor}`,
+            borderTop: "2px solid #1976d2",
+            borderRadius: "50%",
+            animation: "spin 1s linear infinite",
+            pointerEvents: "none",
+            zIndex: 10,
+          },
         }}
         // showToolbar
         {...props}

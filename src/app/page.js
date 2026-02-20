@@ -4,6 +4,7 @@ import styles from "./page.module.css";
 import Link from "next/link";
 
 export default function Home() {
+  const title = "anue backend";
   return (
     <Box className={styles.page}>
       <Typography
@@ -11,9 +12,12 @@ export default function Home() {
         sx={{
           color: "white",
           fontSize: { xs: "3rem", sm: "4rem", md: "5rem", lg: "6rem" },
+          textWrap: "balance",
+          wordBreak: "break-word",
+          overflowWrap: "break-word",
         }}
       >
-        anue backend
+        {title}
       </Typography>
       <Link href="/processFile" passHref style={{ textDecoration: "none" }}>
         <Button
@@ -33,7 +37,7 @@ export default function Home() {
             },
           }}
         >
-          <Typography variant="h6">Load your List</Typography>
+          <Typography variant="h6">Load your Excel</Typography>
         </Button>
       </Link>
     </Box>

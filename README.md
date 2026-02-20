@@ -32,29 +32,25 @@ A specialized backend interface for:
 - **Bulk Processing Pipeline**:
   - **Ingest**: Upload and parse `.xlsx` files via the `/processFile` route.
   - **Smart ID Generation**: Automatically generates a unique "Smart ID" (`CITY-LEVEL-SUBJECT-INDEX`) for each record during parsing.
-  - **Scrape & Extract**: Automated mechanisms to scrape HTML content from URLs and extract structured data using **Gemini**.
-  - **Visualize**: View and refine extracted data directly within the DataGrid.
+  - **Background Async Scraping**: Scraping runs completely in the background via Firebase Triggers, preventing client-side timeouts and allowing bulk queues.
+  - **Duplication & Re-scrape Guards**: The system alerts users if selected rows have already been enriched, giving the choice to skip or force a re-scrape.
 - **Robust Selection**: Custom "Select All" implementation for handling large datasets with inclusion/exclusion logic.
 - **State Persistence**: Column visibility, width, and other view settings are persisted in `localStorage`.
 - **File Management**: Integrated **Control Menu** for file operations (clear, download, scrape).
-- **Cloud Integration**: Powered by Firebase Functions for scalable backend processing and storage.
-- **Database Sync**: Seamless integration with Firestore to automatically load and save records via centralized hooks.
+- **Live Database Sync**: Complete integration with Firestore using `onSnapshot` listeners. The DataGrid auto-updates in real time as the backend processes background scraped jobs, complete with pulsing row animations and loading spinners.
 
 ## AI Data Extraction Pipeline
 
-The core of the application is its intelligent scraping and extraction engine:
+The core of the application is its intelligent, asynchronous scraping and extraction engine:
 
-1.  **Trigger**: Users select rows in the DataGrid and click "Scrape HTML Content".
-2.  **Fetch**: The system attempts to fetch the raw HTML content of the target URL.
-    - _Resilience_: If a 404 error occurs, the system flags this for the AI.
-3.  **AI Processing (Gemini 1.5 Flash)**:
+1.  **Trigger**: Users select rows in the DataGrid and click "Scrape HTML Content". The frontend marks these documents in Firestore as `PENDING_SCRAPE`.
+2.  **Async Orchestration**: A Firebase **Gen 2 Cloud Function** (`asyncScrapeContent`) listens for this status change. It runs heavily concurrent background processes without tying up the user's browser.
+3.  **Fetch & Fallback**: The system attempts to fetch the raw HTML content. If a 404 occurs, it flags this for the AI.
+4.  **AI Processing (Gemini 2.5 Flash)**:
     - The raw HTML (or error context) is sent to Google's Gemini model.
-    - **Fallback Search**: If the URL is invalid (404), Gemini uses its Google Search tool to find the correct, up-to-date program page.
-    - **Extraction**: Gemini extracts structured data (JSON) including:
-      - Start Dates & Deadlines (normalized to YYYY-MM-DD)
-      - Tuple/Fees information
-      - Program features (Language, Flags for Dual/Part-time)
-4.  **Update**: The extracted data is automatically merged back into the DataGrid, updating columns and rows in real-time.
+    - **Search Tooling**: If the URL is invalid or info is missing, Gemini uses Google Search to find the correct, up-to-date program page.
+    - **Extraction**: Gemini extracts structured data (JSON) including Dates, Tuitions, and Requirements.
+5.  **Live Real-time Update**: The backend updates the Firestore document with `COMPLETED` and the exact data. The DataGrid on the frontend automatically merges this update live for the user seamlessly.
 
 ## Smart ID Logic
 
@@ -135,17 +131,17 @@ To deploy the application to Firebase, follow these steps:
 
 **Live Database Management (CMS Features)**
 
-- [ ] Implement a "Live Database" tab
-  - [ ] Connect AG Grid directly to Firestore (using `onSnapshot` or pagination) instead of relying solely on local CSV state
-  - [ ] Introduce a `status` column (e.g., "Needs Scraping", "Up to Date", "Error", "Review Pending")
-  - [ ] Add quick-filters to identify outdated records (e.g., `scraped_at` older than 6 months)
+- [x] Implement a "Live Database" tab
+  - [x] Connect AG Grid directly to Firestore (using `onSnapshot` or pagination) instead of relying solely on local CSV state
+  - [x] Introduce a `status` column (e.g., "Needs Scraping", "Up to Date", "Error", "Review Pending")
+  - [x] Add visual indicators (loading spinners, pulsating highlight) for active database records
 
 **Batch-Job Manager & Background Processing**
 
-- [ ] Refactor scraping process to be fully asynchronous
-  - [ ] Move the scraping loop from the client-side to a backend Task Queue / Cloud Task
-  - [ ] Build a "Job Monitor" dashboard in the frontend
-  - [ ] Display real-time progress bars (e.g., "150/5000 URLs processed") and error logs for batch jobs
+- [x] Refactor scraping process to be fully asynchronous
+  - [x] Move the scraping loop from the client-side to a backend Cloud Function Trigger
+  - [x] Handle rate-limiting (e.g. `maxInstances: 5`)
+  - [x] Display real-time progress via Firestore syncing
 
 **Human-in-the-Loop (HITL) & Validation UI**
 

@@ -5,7 +5,7 @@ import { Box, Typography, LinearProgress } from "@mui/material";
 import * as XLSX from "xlsx";
 
 import { useDataStore } from "@/hooks/useDataStore";
-import { scrapeRows } from "@/services/scraperService";
+import { updateCourseStatus } from "@/services/courseService";
 
 import CustomDataGrid from "../dataGrid";
 import FileUpload from "./FileUpload";
@@ -49,16 +49,52 @@ export default function Index() {
       alert("Please select at least one row to scrape.");
       return;
     }
-    setScrapingProgress({
-      isScraping: true,
-      current: 0,
-      total: selectedRows.length,
-    });
-    const results = await scrapeRows(selectedRows, (current, total) => {
-      setScrapingProgress({ isScraping: true, current, total });
-    });
-    applyScrapedUpdates(results);
-    setScrapingProgress({ isScraping: false, current: 0, total: 0 });
+
+    const alreadyScrapedRows = selectedRows.filter(
+      (r) => r.scraped_at || r.scrape_status === "COMPLETED",
+    );
+    const freshRows = selectedRows.filter(
+      (r) => !r.scraped_at && r.scrape_status !== "COMPLETED",
+    );
+
+    let rowsToScrape = selectedRows;
+
+    if (alreadyScrapedRows.length > 0) {
+      const rescrape = window.confirm(
+        `${alreadyScrapedRows.length} of the selected records have already been enriched previously.\n\nDo you want to RE-SCRAPE them?\n\n- Click "OK" to re-scrape ALL selected records.\n- Click "Cancel" to SKIP them and only scrape the fresh records.`,
+      );
+      if (!rescrape) {
+        rowsToScrape = freshRows;
+        if (rowsToScrape.length === 0) {
+          alert("All selected records were skipped. Nothing to scrape.");
+          return;
+        }
+      }
+    }
+
+    // Make sure we have saved row states in DB first if they are new
+    setIsSaving(true);
+    try {
+      await saveCurrentData();
+    } catch (e) {
+      alert("Failed to ensure rows exist in database before scraping.");
+      setIsSaving(false);
+      return;
+    }
+    setIsSaving(false);
+
+    try {
+      const selectedIds = rowsToScrape.map((r) => r.id);
+      await updateCourseStatus(selectedIds, "PENDING_SCRAPE");
+      alert(
+        `Successfully queued ${selectedIds.length} rows for background scraping! They will update automatically as they finish.`,
+      );
+      // Clear selection so the user knows action was taken
+      handleRowSelectionModelChange([]);
+    } catch (e) {
+      console.error("Error setting PENDING_SCRAPE status:", e);
+      alert("Failed to queue rows for scraping.");
+    }
   };
 
   const handleSaveToDB = async () => {
@@ -152,7 +188,7 @@ export default function Index() {
               Display XLSX Data:{" "}
               {rows.length > 0 ? `${rows.length} rows` : "No data"}
             </Typography>
-            {scrapingProgress.isScraping && (
+            {scrapingProgress?.isScraping && (
               <Box sx={{ width: "100%", mt: 1, mb: 1 }}>
                 <Typography
                   variant="body2"

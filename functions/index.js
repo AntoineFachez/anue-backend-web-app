@@ -27,6 +27,7 @@ const app = require("./app");
 // const { backfillEmbeddings } = require("./triggers/callableEmbeddingsGen");
 // const { secureDataExtractor } = require("./auth/secureAi");
 const { fetchContent } = require("./triggers/callableScraper");
+const { asyncScrapeContent } = require("./triggers/asyncScraper");
 
 // const { getYouTubeTranscript } = require("./triggers/callableTransscript");
 
@@ -43,5 +44,6 @@ exports.api = onRequest(
 );
 //* individual background and callable triggers
 exports.fetchContent = fetchContent;
+exports.asyncScrapeContent = asyncScrapeContent;
 
 //! not in firebase SDK /v2 yet
