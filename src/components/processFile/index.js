@@ -1,12 +1,14 @@
 "use client";
 
-import React, { useRef } from "react";
-import { Box, Typography } from "@mui/material";
-import FileUpload from "./FileUpload";
-import CustomDataGrid from "../dataGrid";
+import React, { useRef, useState } from "react";
+import { Box, Typography, LinearProgress } from "@mui/material";
+import * as XLSX from "xlsx";
+
 import { useDataStore } from "@/hooks/useDataStore";
 import { scrapeRows } from "@/services/scraperService";
-import * as XLSX from "xlsx";
+
+import CustomDataGrid from "../dataGrid";
+import FileUpload from "./FileUpload";
 import Menu from "./Menu";
 
 export default function Index() {
@@ -28,6 +30,11 @@ export default function Index() {
   } = useDataStore();
 
   const fileUploadRef = useRef(null);
+  const [scrapingProgress, setScrapingProgress] = useState({
+    isScraping: false,
+    current: 0,
+    total: 0,
+  });
 
   const handleCellClick = (params) => {
     if (params.colDef.headerName === "study_url" && params.value) {
@@ -40,8 +47,16 @@ export default function Index() {
       alert("Please select at least one row to scrape.");
       return;
     }
-    const results = await scrapeRows(selectedRows);
+    setScrapingProgress({
+      isScraping: true,
+      current: 0,
+      total: selectedRows.length,
+    });
+    const results = await scrapeRows(selectedRows, (current, total) => {
+      setScrapingProgress({ isScraping: true, current, total });
+    });
     applyScrapedUpdates(results);
+    setScrapingProgress({ isScraping: false, current: 0, total: 0 });
   };
 
   const handleDownloadXLSX = () => {
@@ -101,11 +116,44 @@ export default function Index() {
             overflow: "hidden",
           }}
         >
-          <Box sx={{ height: "fit-content" }}>
-            <Typography variant="body1" sx={{ color: "#ffffff" }}>
+          <Box
+            sx={{
+              height: "fit-content",
+              width: "100%",
+              px: 4,
+              display: "flex",
+              flexFlow: "column nowrap",
+              gap: 1,
+            }}
+          >
+            <Typography
+              variant="body1"
+              sx={{ color: "#ffffff", alignSelf: "center" }}
+            >
               Display XLSX Data:{" "}
               {rows.length > 0 ? `${rows.length} rows` : "No data"}
             </Typography>
+            {scrapingProgress.isScraping && (
+              <Box sx={{ width: "100%", mt: 1, mb: 1 }}>
+                <Typography
+                  variant="body2"
+                  sx={{ color: "#ffffff", mb: 0.5, textAlign: "center" }}
+                >
+                  Scraping {scrapingProgress.current} of{" "}
+                  {scrapingProgress.total} records...
+                </Typography>
+                <LinearProgress
+                  variant="determinate"
+                  value={
+                    scrapingProgress.total > 0
+                      ? (scrapingProgress.current / scrapingProgress.total) *
+                        100
+                      : 0
+                  }
+                  sx={{ height: 6, borderRadius: 3 }}
+                />
+              </Box>
+            )}
           </Box>
           <Menu
             fileUploadRef={fileUploadRef}

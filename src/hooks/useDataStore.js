@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { Box, Chip } from "@mui/material";
 import ErrorIcon from "@mui/icons-material/Error";
+import { Check, Close } from "@mui/icons-material";
 
 const STORAGE_KEY = "datagrid-column-visibility";
 
@@ -274,6 +275,16 @@ export function useDataStore() {
           } else if (key.startsWith("is_") || key.startsWith("has_")) {
             colDef.type = "boolean";
             colDef.width = 100;
+
+            // Überschreibe das Standard-MUI-Rendering
+            colDef.renderCell = (params) => {
+              if (params.value === true) {
+                return <Check sx={{ color: "green" }} />; // Hier stylen!
+              } else if (params.value === false) {
+                return <Close sx={{ color: "red" }} />; // Hier stylen!
+              }
+              return null; // Wenn leer (null/undefined)
+            };
           } else if (key.includes("description")) {
             colDef.width = 400;
           } else if (key.includes("deadline")) {

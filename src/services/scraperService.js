@@ -1,7 +1,7 @@
 import { httpsCallable } from "firebase/functions";
 import { functions } from "../lib/firebase/firebase";
 
-export const scrapeRows = async (selectedRows) => {
+export const scrapeRows = async (selectedRows, onProgress) => {
   if (!selectedRows || selectedRows.length === 0) {
     return [];
   }
@@ -10,8 +10,12 @@ export const scrapeRows = async (selectedRows) => {
   const results = [];
 
   for (const [index, row] of selectedRows.entries()) {
+    if (onProgress) {
+      onProgress(index, selectedRows.length, row);
+    }
+
     if (index > 0) {
-      await new Promise((resolve) => setTimeout(resolve, 800));
+      await new Promise((resolve) => setTimeout(resolve, 300));
     }
 
     const urlKey = Object.keys(row).find(
@@ -20,6 +24,13 @@ export const scrapeRows = async (selectedRows) => {
 
     if (!urlKey) {
       console.warn(`No URL found for row ${row.id}`);
+      results.push({
+        id: row.id,
+        updates: {
+          error: "No URL found",
+          details: "Could not find a valid URL to scrape for this record.",
+        },
+      });
       continue;
     }
 
@@ -46,6 +57,10 @@ export const scrapeRows = async (selectedRows) => {
         },
       });
     }
+  }
+
+  if (onProgress) {
+    onProgress(selectedRows.length, selectedRows.length, null);
   }
 
   return results;

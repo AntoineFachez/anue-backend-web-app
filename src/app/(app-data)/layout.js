@@ -7,7 +7,7 @@ export default function layout({ children }) {
       sx={{
         width: "100%",
         height: "100%",
-        marginTop: "3rem",
+        // marginTop: "3rem",
         overflow: "hidden",
         backgroundColor: "transparent",
       }}

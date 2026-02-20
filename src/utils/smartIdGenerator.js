@@ -1,4 +1,4 @@
-import cities from "../lib/geodata/cities.json";
+import cities from "@/lib/geodata/cities.json";
 
 /**
  * Generates a "Smart ID" for a course entry.
