@@ -56,6 +56,9 @@ export default function CustomDataGrid({
         initialState={{
           pagination: { paginationModel: { pageSize: 50 } },
         }}
+        getRowHeight={() => "auto"}
+        // 2. Provide an estimate for the virtual scroller performance
+        getEstimatedRowHeight={() => 80}
         checkboxSelection
         disableRowSelectionOnClick
         columnVisibilityModel={columnVisibilityModel}
@@ -73,16 +76,16 @@ export default function CustomDataGrid({
             color: "text.primary",
           },
           // Make Checkbox Column Sticky
-          "& .MuiDataGrid-columnHeader--checkbox, & .MuiDataGrid-cell--checkbox":
-            {
-              position: "sticky",
-              left: 0,
-              zIndex: 1,
-              backgroundColor: theme.palette.background.paper,
-            },
-          "& .MuiDataGrid-columnHeader--checkbox": {
-            zIndex: 2,
-          },
+          // "& .MuiDataGrid-columnHeader--checkbox, & .MuiDataGrid-cell--checkbox":
+          //   {
+          //     position: "sticky",
+          //     left: 0,
+          //     zIndex: 1,
+          //     backgroundColor: theme.palette.background.paper,
+          //   },
+          // "& .MuiDataGrid-columnHeader--checkbox": {
+          //   zIndex: 2,
+          // },
           "& .MuiCheckbox-root": {
             zIndex: 2,
             color: borderColor,

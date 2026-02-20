@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Box } from "@mui/material";
+import { Box, Chip } from "@mui/material";
 import ErrorIcon from "@mui/icons-material/Error";
 import { httpsCallable } from "firebase/functions";
 import { functions } from "../lib/firebase/firebase";
@@ -147,6 +147,30 @@ export function useProcessFile() {
         console.error("Failed to apply saved widths", e);
       }
     }
+
+    // NEW LOGIC: Inject the renderCell for the "tags" column
+    finalColumns = finalColumns.map((col) => {
+      if (col.field === "tags") {
+        // Replace "tags" with your actual column name if different
+        return {
+          ...col,
+          width: 250,
+          renderCell: (params) => {
+            // Safety check: ensure the value is actually an array before mapping
+            if (!Array.isArray(params.value)) return params.value;
+
+            return (
+              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, py: 1 }}>
+                {params.value.map((tag, index) => (
+                  <Chip key={index} label={tag} size="small" />
+                ))}
+              </Box>
+            );
+          },
+        };
+      }
+      return col;
+    });
 
     // Ensure 'smartId' column exists if not present
     // It should be coming from FileUpload now, but we can keep a check or just Trust FileUpload
@@ -320,6 +344,20 @@ export function useProcessFile() {
             colDef.width = 400;
           } else if (key.includes("deadline")) {
             colDef.width = 200;
+          } else if (key === "tags") {
+            //TODO: adjust to actual tags
+            // NEW LOGIC HERE
+            colDef.width = 250;
+            colDef.renderCell = (params) => {
+              if (!Array.isArray(params.value)) return params.value;
+              return (
+                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, py: 1 }}>
+                  {params.value.map((tag, index) => (
+                    <Chip key={index} label={tag} size="small" />
+                  ))}
+                </Box>
+              );
+            };
           }
 
           newCols.push(colDef);
