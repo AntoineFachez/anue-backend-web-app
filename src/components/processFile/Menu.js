@@ -22,6 +22,8 @@ export default function Menu({
   searchText,
   handleSearchChange,
   handleClearSearch,
+  handleSaveToDB,
+  isSaving,
 }) {
   const handleClearFileWrapper = () => {
     handleClearFile();
@@ -55,6 +57,14 @@ export default function Menu({
         sx={{ bgcolor: selectedRows.length > 0 ? "primary.main" : "grey.800" }}
       >
         Scrape HTML Content ({selectedRows.length})
+      </Button>
+      <Button
+        onClick={handleSaveToDB}
+        variant="contained"
+        disabled={isSaving}
+        color="secondary"
+      >
+        {isSaving ? "Saving..." : "Save to DB"}
       </Button>
       <TextField
         variant="outlined"

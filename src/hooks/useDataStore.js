@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import { Box, Chip } from "@mui/material";
 import ErrorIcon from "@mui/icons-material/Error";
 import { Check, Close } from "@mui/icons-material";
+import { loadCoursesFromDB, saveCoursesToDB } from "@/services/courseService";
 
 const STORAGE_KEY = "datagrid-column-visibility";
 
@@ -79,16 +80,49 @@ export function useDataStore() {
   const timeoutRef = useRef(null);
 
   useEffect(() => {
-    const savedState = localStorage.getItem(STORAGE_KEY);
-    if (savedState) {
-      try {
-        const parsedState = JSON.parse(savedState);
-        setColumnVisibilityModel(parsedState.visibility || {});
-      } catch (e) {
-        console.error("Failed to parse datagrid state from local storage", e);
+    const initStore = async () => {
+      let savedVisibility = {};
+
+      // 1. Recover column visibility
+      const savedState = localStorage.getItem(STORAGE_KEY);
+      if (savedState) {
+        try {
+          const parsedState = JSON.parse(savedState);
+          savedVisibility = parsedState.visibility || {};
+          setColumnVisibilityModel(savedVisibility);
+        } catch (e) {
+          console.error("Failed to parse datagrid state from local storage", e);
+        }
       }
-    }
-    setIsLoaded(true);
+
+      // 2. Load records from Firestore DB
+      try {
+        const dbCourses = await loadCoursesFromDB();
+
+        if (dbCourses && dbCourses.length > 0) {
+          // If we have rows from DB, we need to generate columns dynamically
+          // since they aren't parsed by Excel. We can run handleDataParsed manually.
+
+          // Generate column definitions from the first fetched row's keys
+          const firstRow = dbCourses[0];
+          const dynamicColumns = Object.keys(firstRow).map((key) => ({
+            field: key,
+            headerName: key.charAt(0).toUpperCase() + key.slice(1),
+            width: 150,
+            // add basic type mappings if needed here
+          }));
+
+          handleDataParsed(dbCourses, dynamicColumns);
+        }
+      } catch (e) {
+        console.error("Failed to load initially from DB:", e);
+      } finally {
+        setIsLoaded(true);
+      }
+    };
+
+    initStore();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Compute selected rows based on the model and rows
@@ -350,6 +384,17 @@ export function useDataStore() {
     });
   };
 
+  const saveCurrentData = async (onProgress) => {
+    try {
+      if (rows.length > 0) {
+        await saveCoursesToDB(rows, onProgress);
+      }
+    } catch (e) {
+      console.error("Failed to save to DB:", e);
+      throw e;
+    }
+  };
+
   return {
     rows,
     columns,
@@ -366,5 +411,6 @@ export function useDataStore() {
     handleClearFile,
     handleClearSearch,
     applyScrapedUpdates,
+    saveCurrentData,
   };
 }

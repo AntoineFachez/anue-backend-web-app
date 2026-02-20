@@ -6,7 +6,13 @@ import Link from "next/link";
 export default function Home() {
   return (
     <Box className={styles.page}>
-      <Typography variant="h1" sx={{ color: "white" }}>
+      <Typography
+        variant="h1"
+        sx={{
+          color: "white",
+          fontSize: { xs: "3rem", sm: "4rem", md: "5rem", lg: "6rem" },
+        }}
+      >
         anue backend
       </Typography>
       <Link href="/processFile" passHref style={{ textDecoration: "none" }}>

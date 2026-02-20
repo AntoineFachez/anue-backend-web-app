@@ -27,6 +27,7 @@ export default function Index() {
     handleClearFile,
     handleClearSearch,
     applyScrapedUpdates,
+    saveCurrentData,
   } = useDataStore();
 
   const fileUploadRef = useRef(null);
@@ -35,6 +36,7 @@ export default function Index() {
     current: 0,
     total: 0,
   });
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleCellClick = (params) => {
     if (params.colDef.headerName === "study_url" && params.value) {
@@ -57,6 +59,23 @@ export default function Index() {
     });
     applyScrapedUpdates(results);
     setScrapingProgress({ isScraping: false, current: 0, total: 0 });
+  };
+
+  const handleSaveToDB = async () => {
+    if (rows.length === 0) {
+      alert("No data to save.");
+      return;
+    }
+    setIsSaving(true);
+    try {
+      // Could also pass an onProgress here if we want a similar loading bar
+      await saveCurrentData();
+      alert("Successfully saved data to database!");
+    } catch (e) {
+      alert("Failed to save data. Please try again.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleDownloadXLSX = () => {
@@ -164,6 +183,8 @@ export default function Index() {
             searchText={searchText}
             handleSearchChange={handleSearchChange}
             handleClearSearch={handleClearSearch}
+            handleSaveToDB={handleSaveToDB}
+            isSaving={isSaving}
           />
           <CustomDataGrid
             rows={rows}
