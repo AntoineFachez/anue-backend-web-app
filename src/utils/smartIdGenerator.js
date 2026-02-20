@@ -23,7 +23,7 @@ export function generateSmartID(course) {
     const t = title.toLowerCase();
     if (t.includes("computer") || t.includes("data")) return "CS";
     if (t.includes("finance") || t.includes("management")) return "BM"; // Business/Mgmt
-    if (t.includes("business") || t.includes("communication")) return "BM"; //
+    if (t.includes("business") || t.includes("communication")) return "BC"; // Business/Comm
     if (t.includes("soziale") || t.includes("pädagogik")) return "SW"; // Social Work
     if (t.includes("health") || t.includes("biomedical")) return "HE"; // Health
     return "GN"; // General

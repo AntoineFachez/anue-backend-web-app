@@ -1,9 +1,6 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { Box, Chip } from "@mui/material";
 import ErrorIcon from "@mui/icons-material/Error";
-import { httpsCallable } from "firebase/functions";
-import { functions } from "../lib/firebase/firebase";
-import * as XLSX from "xlsx";
 
 const STORAGE_KEY = "datagrid-column-visibility";
 
@@ -71,13 +68,12 @@ const COLUMN_ORDER = [
   "deadline_summer",
 ];
 
-export function useProcessFile() {
+export function useDataStore() {
   const [rows, setRows] = useState([]);
   const [columns, setColumns] = useState([]);
   const [columnVisibilityModel, setColumnVisibilityModel] = useState({});
   const [isLoaded, setIsLoaded] = useState(false);
   const [rowSelectionModel, setRowSelectionModel] = useState([]);
-  const [selectedRows, setSelectedRows] = useState([]);
   const [searchText, setSearchText] = useState("");
   const timeoutRef = useRef(null);
 
@@ -87,13 +83,18 @@ export function useProcessFile() {
       try {
         const parsedState = JSON.parse(savedState);
         setColumnVisibilityModel(parsedState.visibility || {});
-        // Widths are applied when columns are generated
       } catch (e) {
         console.error("Failed to parse datagrid state from local storage", e);
       }
     }
     setIsLoaded(true);
   }, []);
+
+  // Compute selected rows based on the model and rows
+  const selectedRows = useMemo(() => {
+    const selectionSet = new Set(rowSelectionModel.map(String));
+    return rows.filter((row) => selectionSet.has(String(row.id)));
+  }, [rowSelectionModel, rows]);
 
   const saveState = (visibility, cols) => {
     const widths = cols.reduce((acc, col) => {
@@ -148,15 +149,12 @@ export function useProcessFile() {
       }
     }
 
-    // NEW LOGIC: Inject the renderCell for the "tags" column
     finalColumns = finalColumns.map((col) => {
       if (col.field === "tags") {
-        // Replace "tags" with your actual column name if different
         return {
           ...col,
           width: 250,
           renderCell: (params) => {
-            // Safety check: ensure the value is actually an array before mapping
             if (!Array.isArray(params.value)) return params.value;
 
             return (
@@ -172,11 +170,7 @@ export function useProcessFile() {
       return col;
     });
 
-    // Ensure 'smartId' column exists if not present
-    // It should be coming from FileUpload now, but we can keep a check or just Trust FileUpload
-    // Sort columns based on COLUMN_ORDER
     const sortedFinalColumns = finalColumns.sort((a, b) => {
-      // Special handling for error/details
       if (a.field === "error") return -1;
       if (b.field === "error") return 1;
       if (a.field === "details") return -1;
@@ -188,116 +182,58 @@ export function useProcessFile() {
       if (indexA !== -1 && indexB !== -1) {
         return indexA - indexB;
       }
-      if (indexA !== -1) return -1; // a is in list, b is not -> a comes first
-      if (indexB !== -1) return 1; // b is in list, a is not -> b comes first
+      if (indexA !== -1) return -1;
+      if (indexB !== -1) return 1;
 
-      return 0; // maintain relative order for unknown columns
+      return 0;
     });
 
     setRows(newRows);
     setColumns(sortedFinalColumns);
   };
 
-  const handleCellClick = (params) => {
-    if (params.colDef.headerName === "study_url" && params.value) {
-      window.open(params.value, "_blank");
-    }
-  };
-
   const handleRowSelectionModelChange = (foo, bar) => {
     let selection = [];
 
-    // Check if it's the standard array
     if (Array.isArray(foo)) {
       selection = foo;
-    }
-    // Check if it's the object structure { ids: Set }
-    else if (foo && foo.ids && foo.ids instanceof Set) {
+    } else if (foo && foo.ids && foo.ids instanceof Set) {
       if (foo.type === "exclude") {
-        // "Exclude" mode: Select all rows MINUS the excluded ones
-        // If ids is empty, it means Select ALL.
         const excludedSet = foo.ids;
         selection = rows
           .map((r) => String(r.id))
           .filter((id) => !excludedSet.has(id) && !excludedSet.has(Number(id)));
       } else {
-        // "Include" mode (default): Only these IDs are selected
         selection = Array.from(foo.ids);
       }
-    }
-    // Fallback/Safety check
-    else if (Array.isArray(bar)) {
+    } else if (Array.isArray(bar)) {
       selection = bar;
     }
 
-    // Convert to Set for faster lookup and ensuring uniqueness
-    const selectionSet = new Set(selection.map(String));
-
-    // Update local state for controlled component
     setRowSelectionModel(selection);
-
-    // Filter rows that are in the selection
-    const selected = rows.filter((row) => selectionSet.has(String(row.id)));
-
-    setSelectedRows(selected);
   };
 
-  const handleScrapeHTMLContent = async () => {
-    if (selectedRows.length === 0) {
-      alert("Please select at least one row to scrape.");
-      return;
-    }
+  const handleSearchChange = (event) => {
+    setSearchText(event.target.value);
+  };
 
-    const fetchContent = httpsCallable(functions, "fetchContent");
+  const handleClearFile = () => {
+    setRows([]);
+    setColumns([]);
+    setRowSelectionModel([]);
+    setSearchText("");
+  };
 
-    const results = [];
-    for (const [index, row] of selectedRows.entries()) {
-      // Add delay between requests to prevent IP blocking
-      if (index > 0) {
-        await new Promise((resolve) => setTimeout(resolve, 800));
-      }
+  const handleClearSearch = () => {
+    setSearchText("");
+  };
 
-      const urlKey = Object.keys(row).find(
-        (key) => key.toLowerCase().includes("url") && row[key],
-      );
-
-      if (!urlKey) {
-        console.warn(`No URL found for row ${row.id}`);
-        continue;
-      }
-
-      const url = row[urlKey];
-
-      try {
-        console.log(`Scraping URL for row ${row.id}: ${url}`);
-        const result = await fetchContent({ url });
-        const extractedData = result.data; // { course, fees, deadline }
-
-        console.log(`Scraped data for row ${row.id}:`, extractedData);
-
-        results.push({
-          id: row.id,
-          updates: extractedData,
-        });
-      } catch (error) {
-        console.error(`Error scraping row ${row.id}:`, error);
-        results.push({
-          id: row.id,
-          updates: {
-            error: "Fetch failed",
-            details:
-              error.message || "Could not retrieve content from the URL.",
-          },
-        });
-      }
-    }
-
-    // Dynamically update columns based on new keys in results AND sort everything
+  // Applies new scraped data to existing grid State
+  const applyScrapedUpdates = (results) => {
     setColumns((prevCols) => {
       const newCols = [...prevCols];
       const existingFields = new Set(newCols.map((c) => c.field));
 
-      // Collect all potential new keys from results
       const allNewKeys = new Set();
       results.forEach((r) => {
         if (r.updates) {
@@ -305,7 +241,6 @@ export function useProcessFile() {
         }
       });
 
-      // Add new columns if they don't exist
       allNewKeys.forEach((key) => {
         if (!existingFields.has(key)) {
           let colDef = {
@@ -314,7 +249,6 @@ export function useProcessFile() {
             width: 150,
           };
 
-          // Apply specific formatting
           if (key === "error") {
             colDef = {
               field: "error",
@@ -345,8 +279,6 @@ export function useProcessFile() {
           } else if (key.includes("deadline")) {
             colDef.width = 200;
           } else if (key === "tags") {
-            //TODO: adjust to actual tags
-            // NEW LOGIC HERE
             colDef.width = 250;
             colDef.renderCell = (params) => {
               if (!Array.isArray(params.value)) return params.value;
@@ -365,11 +297,7 @@ export function useProcessFile() {
         }
       });
 
-      // Sort ALL columns based on COLUMN_ORDER
-      // Items not in COLUMN_ORDER go to the end
-      // 'error' and 'details' are special cases -> always put them first for visibility if present
       const sortedCols = newCols.sort((a, b) => {
-        // Special handling for error/details
         if (a.field === "error") return -1;
         if (b.field === "error") return 1;
         if (a.field === "details") return -1;
@@ -381,23 +309,21 @@ export function useProcessFile() {
         if (indexA !== -1 && indexB !== -1) {
           return indexA - indexB;
         }
-        if (indexA !== -1) return -1; // a is in list, b is not -> a comes first
-        if (indexB !== -1) return 1; // b is in list, a is not -> b comes first
+        if (indexA !== -1) return -1;
+        if (indexB !== -1) return 1;
 
-        return 0; // maintain relative order for unknown columns
+        return 0;
       });
 
       return sortedCols;
     });
 
-    // Update state with new data
     setRows((prevRows) => {
       return prevRows.map((row) => {
         const update = results.find((r) => r.id === row.id);
         if (update) {
           const merged = { ...row, ...update.updates };
 
-          // If there's an error, prioritize position: error, details, smartId, ...rest
           if (update.updates.error) {
             const { error, details, smartId, ...rest } = merged;
             const ordered = { error, details };
@@ -413,35 +339,6 @@ export function useProcessFile() {
     });
   };
 
-  const handleSearchChange = (event) => {
-    setSearchText(event.target.value);
-  };
-  const handleClearFile = (event) => {
-    setRows([]);
-    setColumns([]);
-    setRowSelectionModel([]);
-    setSelectedRows([]);
-    setSearchText("");
-  };
-
-  const handleClearSearch = () => {
-    setSearchText("");
-  };
-
-  const handleDownloadXLSX = () => {
-    console.log("handleDownloadXLSX clicked");
-
-    if (rows.length === 0) {
-      alert("No data to download.");
-      return;
-    }
-
-    const worksheet = XLSX.utils.json_to_sheet(rows);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Scraped Data");
-    XLSX.writeFile(workbook, "scraped_data.xlsx");
-  };
-
   return {
     rows,
     columns,
@@ -453,12 +350,10 @@ export function useProcessFile() {
     handleColumnVisibilityChange,
     handleColumnResize,
     handleDataParsed,
-    handleCellClick,
     handleRowSelectionModelChange,
-    handleScrapeHTMLContent,
     handleSearchChange,
     handleClearFile,
     handleClearSearch,
-    handleDownloadXLSX,
+    applyScrapedUpdates,
   };
 }

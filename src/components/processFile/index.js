@@ -4,7 +4,9 @@ import React, { useRef } from "react";
 import { Box, Typography } from "@mui/material";
 import FileUpload from "./FileUpload";
 import CustomDataGrid from "../dataGrid";
-import { useProcessFile } from "@/hooks/useProcessFile";
+import { useDataStore } from "@/hooks/useDataStore";
+import { scrapeRows } from "@/services/scraperService";
+import * as XLSX from "xlsx";
 import Menu from "./Menu";
 
 export default function Index() {
@@ -18,16 +20,41 @@ export default function Index() {
     handleColumnVisibilityChange,
     handleColumnResize,
     handleDataParsed,
-    handleCellClick,
     handleRowSelectionModelChange,
-    handleScrapeHTMLContent,
     handleSearchChange,
     handleClearFile,
     handleClearSearch,
-    handleDownloadXLSX,
-  } = useProcessFile();
+    applyScrapedUpdates,
+  } = useDataStore();
 
   const fileUploadRef = useRef(null);
+
+  const handleCellClick = (params) => {
+    if (params.colDef.headerName === "study_url" && params.value) {
+      window.open(params.value, "_blank");
+    }
+  };
+
+  const handleScrapeHTMLContent = async () => {
+    if (selectedRows.length === 0) {
+      alert("Please select at least one row to scrape.");
+      return;
+    }
+    const results = await scrapeRows(selectedRows);
+    applyScrapedUpdates(results);
+  };
+
+  const handleDownloadXLSX = () => {
+    console.log("handleDownloadXLSX clicked");
+    if (rows.length === 0) {
+      alert("No data to download.");
+      return;
+    }
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Scraped Data");
+    XLSX.writeFile(workbook, "scraped_data.xlsx");
+  };
 
   if (!isLoaded) {
     return null; // Or a loading spinner
