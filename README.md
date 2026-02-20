@@ -12,13 +12,14 @@ A specialized backend interface for:
 ## Project Structure
 
 - `src/app`: Next.js App Router pages and layouts.
-- `src/components/dataGrid`: Reusable `CustomDataGrid` component with sticky columns and custom styling.
+- `src/components/dataGrid`: Reusable `CustomDataGrid` component, with decoupled subcomponents (`CustomHeader`, `CustomFooter`), sticky columns, density settings, and custom styling.
 - `src/components/processFile`: File process UI, including `FileUpload` and the control `Menu`.
-- `src/hooks`: Custom hooks like `useProcessFile` for managing grid state and scraping triggers.
+- `src/hooks`: Custom hooks like `useDataStore` for centralized state management, filtering, and DB synchronization.
 - `src/utils`: Utility functions (e.g., `smartIdGenerator`).
 - `functions`: Firebase Cloud Functions (Gen 2).
   - `triggers`: Event-driven and callable functions (e.g., `callableScraper`).
   - `services`: Business logic and external service integrations (e.g., `scraperService`).
+  - `api`: Express app defining direct API endpoints.
 
 ## Key Features
 
@@ -27,15 +28,17 @@ A specialized backend interface for:
   - **Enhanced Pagination**: Support for large datasets with configurable page sizes (up to 100 rows).
   - **Sorting & Filtering**: Built-in column sorting and complex filtering capabilities.
   - **Sticky Columns**: Key columns (like selection checkboxes) remain visible while scrolling horizontally.
+  - **Density & View Settings**: Adjustable row height (density) and togglable column visibility (e.g., description column).
 - **Bulk Processing Pipeline**:
   - **Ingest**: Upload and parse `.xlsx` files via the `/processFile` route.
   - **Smart ID Generation**: Automatically generates a unique "Smart ID" (`CITY-LEVEL-SUBJECT-INDEX`) for each record during parsing.
   - **Scrape & Extract**: Automated mechanisms to scrape HTML content from URLs and extract structured data using **Gemini**.
   - **Visualize**: View and refine extracted data directly within the DataGrid.
 - **Robust Selection**: Custom "Select All" implementation for handling large datasets with inclusion/exclusion logic.
-- **State Persistence**: Column visibility and width settings are persisted in `localStorage`.
+- **State Persistence**: Column visibility, width, and other view settings are persisted in `localStorage`.
 - **File Management**: Integrated **Control Menu** for file operations (clear, download, scrape).
 - **Cloud Integration**: Powered by Firebase Functions for scalable backend processing and storage.
+- **Database Sync**: Seamless integration with Firestore to automatically load and save records via centralized hooks.
 
 ## AI Data Extraction Pipeline
 
@@ -44,7 +47,7 @@ The core of the application is its intelligent scraping and extraction engine:
 1.  **Trigger**: Users select rows in the DataGrid and click "Scrape HTML Content".
 2.  **Fetch**: The system attempts to fetch the raw HTML content of the target URL.
     - _Resilience_: If a 404 error occurs, the system flags this for the AI.
-3.  **AI Processing (Gemini 2.5 Flash)**:
+3.  **AI Processing (Gemini 1.5 Flash)**:
     - The raw HTML (or error context) is sent to Google's Gemini model.
     - **Fallback Search**: If the URL is invalid (404), Gemini uses its Google Search tool to find the correct, up-to-date program page.
     - **Extraction**: Gemini extracts structured data (JSON) including:
@@ -125,9 +128,9 @@ To deploy the application to Firebase, follow these steps:
 - write logic to:
   - [x] loop rows
   - [x] foreach row: scrape html content
-  - [ ] save scraped data to firebase
+  - [x] save scraped data to firebase
   - [x] trigger cloud function to extract data from html content using Gemini
-  - [ ] save extracted data to firebase
+  - [x] save extracted data to firebase
   - [x] display extracted data in DataGrid
 
 **Live Database Management (CMS Features)**
